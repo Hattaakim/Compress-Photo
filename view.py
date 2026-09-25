@@ -927,12 +927,9 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
 if __name__ == "__main__":
     app = SingleInstance(sys.argv)
     if app.isRunning:
-        #showInfo(None, "Informasi", 
-         #        "Aplikasi sudah berjalan di perangkat Anda. Silahkan cek kembali!", 'info')
-        ### OVERRIDED NOTEsys.exit(0)
-        window = JendelaUtama()
-        window.show()
-        app.exec()
+        showInfo(None, "Informasi", 
+                "Aplikasi sudah berjalan di perangkat Anda. Silahkan cek kembali!", 'info')
+        sys.exit(0)
 
     else:
         window = JendelaUtama()
