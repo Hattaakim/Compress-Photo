@@ -216,9 +216,8 @@ class DropFilter(QObject):
                     return True
 
             elif event.type() == QEvent.Drop:
-                hasil = self.sqldb.runQuery(
-                    querySQL="SELECT fileDir FROM fileTable",
-                    params=None, fetch=True
+                hasil = self.sqldb.selectQuery(
+                    querySQL="SELECT fileDir FROM fileTable"
                 )
                 fileSudahAda = [fDir[0] for (fDir) in hasil]
                 validExt = [".jpg", ".jpeg", ".png"]
@@ -227,13 +226,12 @@ class DropFilter(QObject):
                         filePath = url.toLocalFile()
                         if filePath not in fileSudahAda and os.path.isfile(filePath):
                             if os.path.splitext(filePath)[1].lower() in validExt:
-                                tableFill = [os.path.basename(filePath), filePath]
-                                lastRow = self.model.rowCount()
-                                self.model.insertRow(lastRow)
-                                for i, item in enumerate(tableFill):
-                                    self.model.setData(
-                                        self.model.index(lastRow, i + 1), item
-                                    )
+                                self.sqldb.executeQuery(
+                                    querySQL="INSERT INTO fileTable(fileName, fileDir) VALUES (?,?)",
+                                    params=[os.path.basename(filePath), filePath]
+                                )
+                                self.model.select()
+
                     self.model.submitAll()
                     event.acceptProposedAction()
                     return True
@@ -255,6 +253,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                          3: [self.stepFourNumber, self.stepFourTitle]}
         self.sqlDatabase = backend.fileDatabase()
         self.nowExitAble = True
+        self.numWorkers = max(1, cpu_count()-2)
 
         ######### INIT Code ##########
         self.initGUI()
@@ -304,31 +303,34 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         self.pageOneLanjut.clicked.connect(self.continuePageOneVerify)
 
         ######## Variabel Halaman Kedua #########
-        self.verifyTableModel = QSqlTableModel(self, db=self.sqlDatabase.fileDatabase)
-        self.verifyTableModel.setTable("fileVerify")
+        self.tabelVerifikasiModel = QSqlTableModel(self, db=self.sqlDatabase.fileDatabase)
+        self.tabelVerifikasiModel.setTable("fileVerify")
         self.verifyTableModelHeader = ["id", "Nama", "Ekstensi File", "Format File", "Ukuran File", "File Didukung", "Integritas File", "File Aman", "Path File"]
         for i, item in enumerate(self.verifyTableModelHeader):
-            self.verifyTableModel.setHeaderData(
+            self.tabelVerifikasiModel.setHeaderData(
                 i, Qt.Orientation.Horizontal, item
             )
-        self.verifyTableModel.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
+        self.tabelVerifikasiModel.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
 
+        self._bufferVerifikasiModel = []
         self.pConn = None
         self.cConn = None
         self.p1 = None
-        self.t1 = QTimer(self)
-        self.t1.timeout.connect(self.getAllFile)
+        self.t1 = QTimer(self) # read file from folder
+        self.t2 = QTimer(self) # verify file
+        self.t3 = QTimer(self) # update table auto
         self.verifyFileQueue = None
         self.fileCount = 0
         self.doneVerify = 0
         self.pool = None
-        self.t2 = QTimer(self)
 
         ######## Signal & Slot Halaman Kedua #########
         self.startVerify.clicked.connect(self.verifyFile)
         self.pageTwoLanjut.clicked.connect(self.continuePageTwo)
+        self.t1.timeout.connect(self.getAllFile)
         self.t2.timeout.connect(self.checkQueueVerifyFile)
-
+        self.t3.timeout.connect(self.updateVerifyTable)
+        self.reloadVerifyTable.clicked.connect(self.updateVerifyTable)
 
         ######## Variabel Halaman Ketiga ##########
         self.pageThreeInteractable = [self.imgCompress, self.imgMpx,
@@ -353,31 +355,35 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         self.pageThreeNext.clicked.connect(self.continuePageThreeVerify)
 
         ####### Variabel Halaman Keempat ########
+        self._bufferCompressionProgress = []
         self.preferredMaxPix = 0
         self.preferredQuality = 0
         self.compressionPenghematan:float = 0.00
         self.deleteOriFile = False
         self.doneCompress = 0
 
-        self.compressTableModel = QSqlTableModel(self, db=self.sqlDatabase.fileDatabase)
-        self.compressTableModel.setTable("fileProcess")
+        self.fileCompressionTableModel = QSqlTableModel(self, db=self.sqlDatabase.fileDatabase)
+        self.fileCompressionTableModel.setTable("fileProcess")
         self.compressTableModelHeader = ["id", "Nama File", "Status", "Size Awal", "Size Akhir", "Dihemat", "Simpan Di", "Hapus"]
         for i, item in enumerate(self.compressTableModelHeader):
-            self.compressTableModel.setHeaderData(
+            self.fileCompressionTableModel.setHeaderData(
                 i, Qt.Orientation.Horizontal, item
             )
-        self.compressTableModel.setEditStrategy(
+        self.fileCompressionTableModel.setEditStrategy(
             QSqlTableModel.EditStrategy.OnManualSubmit
         )
 
-        self.uTimer = QTimer(self)
+        self.t4 = QTimer(self) # check compression progress
+        self.t5 = QTimer(self) # update table
         self.compressTask = None
         self.compressTaskComms = Queue()
         self.fileToCompress = None
 
         ####### Signal & Slot Halaman Keempat ######
-        self.uTimer.timeout.connect(self.checkCompressProgress)
+        self.t4.timeout.connect(self.checkCompressProgress)
+        self.t5.timeout.connect(self.updateTable)
         self.startCompression.clicked.connect(self.compressFotoParalell)
+        self.reloadVerifyTable.clicked.connect(self.updateVerifyTable)
 
     def initGUI(self):
         """First boot, hanya opsi pertama yang muncul"""
@@ -456,22 +462,19 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
 
     def pilihFileFoto(self):
         """Ketika user mau pakai fitur pilih foto satu persatu alih-alih drag and drop"""
-        hasil = self.sqlDatabase.runQuery(
-            querySQL="SELECT fileDir FROM fileTable",
-            params=None, fetch=True
+        hasil = self.sqlDatabase.selectQuery(
+            querySQL="SELECT fileDir FROM fileTable"
         )
         fileSudahAda = [fDir[0] for (fDir) in hasil]
         files = chooseFiles(self, judul="Test")
         if files:
             for file in files:
                 if file not in fileSudahAda and os.path.isfile(file):
-                    lastRow = self.fileTableModel.rowCount()
-                    self.fileTableModel.insertRow(lastRow)
-                    tableFill = [os.path.basename(file), file]
-                    for i, item in enumerate(tableFill):
-                        self.fileTableModel.setData(
-                            self.fileTableModel.index(lastRow, i+1), item
-                        )
+                    self.sqlDatabase.executeQuery(
+                        querySQL="INSERT INTO fileTable(fileName, fileDir) VALUES (?,?)",
+                        params=[os.path.basename(file), file]
+                    )
+            self.fileTableModel.select()
 
     def hapusFileFoto(self):
         """Supaya user bisa hapus data yang dia pilih di kolom"""
@@ -498,7 +501,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             jawaban = bringQuestion(self, "Area Berbahaya", "Yakin untuk menghapus seluruh kolom terisi?",
                                     "warning", "yes", "no")
             if jawaban == QMessageBox.Yes:
-                self.sqlDatabase.runQuery(
+                self.sqlDatabase.executeQuery(
                     querySQL="DELETE FROM fileTable"
                 )
                 self.fileTableModel.select()
@@ -528,7 +531,6 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                                                "Siap untuk melanjutkan? Data pada halaman sebelumnya akan menjadi baca-saja (tidak dapat diedit)",
                                                'question','yes','no')
                     if konfirmasi == QMessageBox.Yes:
-                        self.fileTableModel.submitAll()
                         self.continuePageOne()
 
                 else:
@@ -548,12 +550,11 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
 
         for chooseAble in self.pageOneOpsi:
             chooseAble.setDisabled(True)
-        del self.pageOneInteractable, self.pageOneOpsi, self.currentRowClicked
+
         for key, buttonList in self.allPages.items():
             if key == 1:
                 for button in buttonList:
                     button.setEnabled(True)
-
         self.pageOneLanjut.setDisabled(True)
         self.stackedWidget.setCurrentIndex(1)
         self.pageTwoInit()
@@ -561,13 +562,12 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
     ###### Second Page Only #######
     def pageTwoInit(self):
         """Initialize Page Two so it's ready to use"""
+        self.fileVerifyProgress.setFormat("Belum Dimulai!")
         self.pageTwoLanjut.setDisabled(True)
-        self.fileVerifyProgress.setText("Proses Verifikasi File Belum Dimulai!")
         if not self.tabelVerifikasi.model():
             self.tabelVerifikasi.setEditTriggers(QAbstractItemView.NoEditTriggers)
-            self.tabelVerifikasi.setModel(self.verifyTableModel)
+            self.tabelVerifikasi.setModel(self.tabelVerifikasiModel)
             self.tabelVerifikasi.hideColumn(0)
-            self.verifyTableModel.select()
 
             delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self.tabelVerifikasi)
             delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self.tabelVerifikasi)
@@ -580,7 +580,9 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                 self.tabelVerifikasi.setItemDelegateForColumn(i, delegateTableInterpret)
             self.tabelVerifikasi.setItemDelegateForColumn(8, delegateTableLeftAlign)
 
+        self.tabelVerifikasiModel.select()
         if self.fileMode == 1:
+            self.startVerify.setDisabled(True)
             self.pConn, self.cConn = Pipe()
             self.p1 = Process(
                 target=backend.returnAllFileFromPath,
@@ -588,6 +590,9 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             )
             self.p1.start()
             self.t1.start(500)
+        
+        elif self.fileMode == 2:
+            self.startVerify.setEnabled(True)
 
     def getAllFile(self):
         """Subprocess for secondary thread check, comms, and terminate"""
@@ -598,56 +603,89 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             if self.p1.is_alive():
                 self.p1.kill()
 
-            for pFile in allFile:
-                lastRow = self.verifyTableModel.rowCount()
-                self.verifyTableModel.insertRow(lastRow)
-                tableFill = [os.path.basename(pFile)]
-                tableFill.extend("-" for _ in range(2))
-                tableFill.extend(0 for _ in range(4))
-                tableFill.append(pFile)
-                for col, item in enumerate(tableFill):
-                    self.verifyTableModel.setData(
-                        self.verifyTableModel.index(lastRow, col+1), item
+            if len(allFile) > 0:
+                for pFile in allFile:
+                    self.sqlDatabase.executeQuery(
+                        querySQL="INSERT INTO fileVerify(fileName, filePath) VALUES (?,?)",
+                        params=[os.path.basename(pFile), pFile]
                     )
-            del self.pConn, self.cConn, self.p1, self.t1
-            self.verifyTableModel.submitAll()
+                self.tabelVerifikasiModel.select()
+                self.startVerify.setEnabled(True)
+
+            else:
+                for chooseAble in self.pageOneOpsi:
+                    chooseAble.setEnabled(True)
+                for key, qtObjectList in self.pageOneInteractable.items():
+                    if key == 1:
+                        for qtObj in qtObjectList:
+                            qtObj.setEnabled(True)
+                self.stackedWidget.setCurrentIndex(0)
+                showInfo(self, "Kesalahan: Folder Kosong",
+                         "Folder yang Anda pilih pada halaman sebelumnya merupakan folder kosong dan tidak mengandung file foto apapun. Silahkan verifikasi ulang sebelum lanjut menuju halaman verifikasi!", 'error')
+                for key, buttonList in self.allPages.items():
+                    if key == 0:
+                        for button in buttonList:
+                            button.setEnabled(True)
+                    elif key == 1:
+                        for button in buttonList:
+                            button.setDisabled(True)
+                self.pageOneLanjut.setEnabled(True)
+                self.firstPageGUI()
 
     def verifyFile(self):
         """Lakukan verifikasi secara async menggunakan multiprocessing pool"""
         self.startVerify.setDisabled(True)
-        allFDir = self.sqlDatabase.runQuery(
-            querySQL="SELECT filePath from fileVerify WHERE isSupported = 0 AND isNotCorrupted = 0 AND isNotVirus = 0",
-            params=None, fetch=True
+        allFDir = self.sqlDatabase.selectQuery(
+            querySQL="SELECT filePath from fileVerify WHERE isSupported = 0 AND isNotCorrupted = 0 AND isNotVirus = 0"
         )
         allNeedVerifyFile = [fDir[0] for fDir in allFDir]
         self.fileCount = len(allNeedVerifyFile)
+        self.fileVerifyProgress.setRange(0, self.fileCount)
+        self.fileVerifyProgress.setFormat("%v/%m File Diproses")
         self.doneVerify = 0
         self.verifyFileQueue = Queue()
 
-        self.pool = Pool(processes=cpu_count()-2)
+        self.pool = Pool(processes=self.numWorkers)
         for file in allNeedVerifyFile:
             self.pool.apply_async(backend.verifyImageFile, 
-                                  args=(file,), callback=self.verifyFileQueue.put)
+                                  args=(file,), 
+                                  callback=self.verifyFileQueue.put)
         self.pool.close()
         self.t2.start(100)
+        self.t3.start(500)
+
+    def updateVerifyTable(self):
+        self.tabelVerifikasiModel.select()
 
     def checkQueueVerifyFile(self):
         """Timer untuk mengecek proses verifikasi"""
         while not self.verifyFileQueue.empty():
+            ### ekstensiFile, formatFile, ukuranAwal, dukunganFile, tidakCorrupt, bukanVirus, namaFile
             hasil = self.verifyFileQueue.get()
-            for row in range(self.verifyTableModel.rowCount()):
-                index = self.verifyTableModel.index(row, 1)
-                if self.verifyTableModel.data(index) == hasil[0]:
-                    for i in range(len(hasil)-1):
-                        self.verifyTableModel.setData(
-                            self.verifyTableModel.index(row, i+2), hasil[i+1]
-                        )
-                    break
+            self._bufferVerifikasiModel.append(hasil)
             self.doneVerify += 1
-            self.fileVerifyProgress.setText(f"{self.doneVerify} dari {self.fileCount} File Telah Diproses")
+            
+            if len(self._bufferVerifikasiModel) >= 5:
+                self.sqlDatabase.executeQuery(
+                    querySQL="UPDATE fileVerify SET fileExt = ?, fileFormat = ?, fileSize = ?, isSupported = ?, isNotCorrupted = ?, isNotVirus = ? WHERE fileName = ?",
+                    params=self._bufferVerifikasiModel, isMultipleParams=True
+                )
+                self._bufferVerifikasiModel.clear()
+
+            else:
+                self._bufferVerifikasiModel.append(hasil)
+
+            self.fileVerifyProgress.setValue(self.doneVerify)
             if self.doneVerify == self.fileCount:
+                if len(self._bufferVerifikasiModel) > 0:
+                    self.sqlDatabase.executeQuery(
+                    querySQL="UPDATE fileVerify SET fileExt = ?, fileFormat = ?, fileSize = ?, isSupported = ?, isNotCorrupted = ?, isNotVirus = ? WHERE fileName = ?",
+                    params=self._bufferVerifikasiModel, isMultipleParams=True
+                )
+                    self._bufferVerifikasiModel.clear()
+                self.fileVerifyProgress.setFormat("Proses Selesai!")
                 self.t2.stop()
-                self.verifyTableModel.submitAll()
+                self.t3.stop()
                 self.pageTwoLanjut.setEnabled(True)
     
     def continuePageTwo(self):
@@ -656,7 +694,6 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                                 "Apakah hasil verifikasi yang ditunjukkan oleh halaman ini sudah memenuhi ekspektasi Anda?\nFile tidak didukung, corrupt dan berpotensi mengandung virus tidak akan diikutsertakan untuk proses kompresi.",
                                 "question", "yes", "no")
         if jawaban == QMessageBox.Yes:
-            del self.verifyFileQueue, self.fileCount, self.doneVerify, self.pool, self.t2
             for key, pushButtonList in self.allPages.items():
                 if key == 2:
                     for pushButton in pushButtonList:
@@ -668,13 +705,11 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
     ###### Third Page Only #######
     def pageThreeInit(self):
         """Initialize page three supaya siap pakai"""
-        allVerifiedFilePath = self.sqlDatabase.runQuery(
-            querySQL="SELECT filePath from fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1",
-            params=None, fetch=True
+        allVerifiedFilePath = self.sqlDatabase.selectQuery(
+            querySQL="SELECT filePath from fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"
         )
-        allVerifiedFileFormat = self.sqlDatabase.runQuery(
-            querySQL="SELECT fileFormat FROM fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1",
-            params=None, fetch=True
+        allVerifiedFileFormat = self.sqlDatabase.selectQuery(
+            querySQL="SELECT fileFormat FROM fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"
         )
         self.allVerifiedFilePath = [os.path.dirname(fDir[0]) for fDir in allVerifiedFilePath]
         self.allFilePathCategory = sorted(set(self.allVerifiedFilePath))
@@ -749,10 +784,10 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
 
     def ringkasanUpdater(self):
         """Fungsi untuk memperbarui ringkasan"""
-        headerText = "Ringkasan Kompresi:"
+        headerText = ""
 
         strukturSummary = [
-            f"{len(self.allVerifiedFilePath)} dari {self.verifyTableModel.rowCount()} foto akan diproses",
+            f"{len(self.allVerifiedFilePath)} dari {self.tabelVerifikasiModel.rowCount()} foto akan diproses",
             f"Foto yang diproses memiliki ekstensi {",".join(self.allFileFormatCategory[:-1]) + " dan " + self.allFileFormatCategory[-1] if len(self.allFileFormatCategory) > 1 else self.allFileFormatCategory[0]}",
             f"Hasil kompresi beresolusi {self.imgMpx.currentText()} dan mempertahankan {self.imgCompress.value()}% kualitas aslinya",
         ]
@@ -764,7 +799,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             strukturSummary.append("Foto asli akan dihapus setelah diproses untuk kompresi")
 
         for number, summaryCategory in enumerate(strukturSummary, 1):
-            headerText += f"\n{number}. {summaryCategory}"
+            headerText += f"{number}. {summaryCategory}\n"
         self.dataSummary.setText(headerText)
 
     def continuePageThreeVerify(self):
@@ -787,7 +822,6 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             if key == 3:
                 for pushButton in pushButtonList:
                     pushButton.setEnabled(True)
-        del self.allVerifiedFilePath, self.qualityTip, self.compressSummary, self.allFilePathCategory, self.allFileFormatCategory
         self.stackedWidget.setCurrentIndex(3)
         self.pageForthInit()
 
@@ -796,8 +830,8 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         """Fungsi untuk mempersiapkan halaman terakhir"""
         if not self.fileCompressionTable.model():
             self.fileCompressionTable.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-            self.fileCompressionTable.setModel(self.compressTableModel)
-            self.compressTableModel.select()
+            self.fileCompressionTable.setModel(self.fileCompressionTableModel)
+            self.fileCompressionTableModel.select()
             self.fileCompressionTable.hideColumn(0)
 
             delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self.fileCompressionTable)
@@ -811,14 +845,14 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             self.fileCompressionTable.setItemDelegateForColumn(6, delegateTableLeftAlign)
             self.fileCompressionTable.setItemDelegateForColumn(7, delegateTableInterpret)
 
-        allVerifiedFilePath = self.sqlDatabase.runQuery(
-            querySQL="SELECT filePath from fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1",
-            params=None, fetch=True
+        allVerifiedFilePath = self.sqlDatabase.selectQuery(
+            querySQL="SELECT filePath from fileVerify WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"
         )
         self.fileToCompress = [fPath[0] for fPath in allVerifiedFilePath]
         self.preferredMaxPix = int("".join([char for char in self.imgMpx.currentText() if char.isdigit()]))*100000
         self.preferredQuality = self.imgCompress.value()
         self.deleteOriFile = True if self.hapusFIleAsli.checkState() == Qt.CheckState.Checked else False
+        self.fileCompressionProgress.setFormat("Belum Dimulai!")
 
     def compressFotoParalell(self):
         """Proses parallel untuk kompres gambar"""
@@ -828,41 +862,49 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         if jawaban == QMessageBox.Yes:
             self.nowExitAble = False
             self.startCompression.setDisabled(True)
-            self.compressTask = Pool(processes=cpu_count()-2)
+            self.compressTask = Pool(processes=self.numWorkers)
+            self.fileCompressionProgress.setRange(0, len(self.fileToCompress))
+            self.fileCompressionProgress.setFormat("%v/%m File Dikompresi")
             for fDir in self.fileToCompress:
                 self.compressTask.apply_async(compressModule.compressImage,
                                         args=(fDir, self.saveDir, self.preferredMaxPix, self.preferredQuality, self.deleteOriFile),
                                         callback=self.compressTaskComms.put)
             self.compressTask.close()
-            self.uTimer.start(100)
+            self.t4.start(100)
+            self.t5.start(500)
+
+    def updateTable(self):
+        self.fileCompressionTableModel.select()
 
     def checkCompressProgress(self):
         """Fungsi untuk mengecek proses verifikasi"""
         while not self.compressTaskComms.empty():
             hasil = self.compressTaskComms.get()
-            for row in range(self.compressTableModel.rowCount()):
-                index = self.compressTableModel.index(row, 1)
-                if self.compressTableModel.data(index) == hasil[0]:
-                    self.compressTableModel.setData(
-                        self.compressTableModel.index(row, 2), hasil[1]
-                    )
-                    for i in range(4,8):
-                        self.compressTableModel.setData(
-                            self.compressTableModel.index(row, i), hasil[i-2]
-                        )
-                    break
+            self._bufferCompressionProgress.append(hasil)
             self.doneCompress +=1
-            self.fileCompressionProgress.setText(f"{self.doneCompress} dari {len(self.fileToCompress)} foto telah diproses")
+            if len(self._bufferCompressionProgress) >= 5:
+                self.sqlDatabase.executeQuery(
+                    querySQL="UPDATE fileProcess SET fileStatus = ?, fileSize1 = ?, sizeReduced = ?, fileSavePath = ?, fileDeleted = ? WHERE fileName = ?",
+                    params=self._bufferCompressionProgress, isMultipleParams=True
+                )
+                self._bufferCompressionProgress.clear()
+            
+            self.fileCompressionProgress.setValue(self.doneCompress)
             if self.doneCompress == len(self.fileToCompress):
-                self.uTimer.stop()
-                self.compressTableModel.submitAll()
+                if len(self._bufferCompressionProgress) > 0:
+                    self.sqlDatabase.executeQuery(
+                    querySQL="UPDATE fileProcess SET fileStatus = ?, fileSize1 = ?, sizeReduced = ?, fileSavePath = ?, fileDeleted = ? WHERE fileName = ?",
+                    params=self._bufferCompressionProgress, isMultipleParams=True
+                )
+                    self._bufferCompressionProgress.clear()
+                self.t4.stop()
+                self.t5.stop()
                 self.nowExitAble = True
 
-                totalPenghematan = self.sqlDatabase.runQuery(
-                    querySQL="SELECT SUM(sizeReduced) FROM fileProcess WHERE fileStatus = 1",
-                    params=None, fetch=True
+                totalPenghematan = self.sqlDatabase.selectQuery(
+                    querySQL="SELECT SUM(sizeReduced) FROM fileProcess WHERE fileStatus = 1"
                 )
-                self.fileCompressionProgress.setText(f"Semua proses selesai. Anda berhasil menghemat {humanReadableSize(totalPenghematan[0][0])}")
+                self.fileCompressionProgress.setFormat(f"Proses Selesai. Anda menghemat {humanReadableSize(totalPenghematan[0][0])}")
 
     def closeEvent(self, event):
         """Preventing user for accidently closing application"""

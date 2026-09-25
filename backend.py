@@ -13,7 +13,7 @@ class fileDatabase:
 """CREATE TABLE IF NOT EXISTS fileTable(
 id INTEGER PRIMARY KEY,
 fileName TEXT NOT NULL,
-fileDir TEXT NOT NULL)""",
+fileDir TEXT DEFAULT '-')""",
 
 """CREATE TABLE IF NOT EXISTS fileVerify(
 id INTEGER PRIMARY KEY,
@@ -60,27 +60,48 @@ END;"""
         ]
         for qSql in self.qCreateTable:
             self.dbQuery.exec(qSql)
-        print(self.dbQuery.lastError().text())
 
-    def runQuery(self, querySQL, params=None, fetch=False):
-        """params for VALUES (?,?) and FETCH for return data"""
+    def executeQuery(self, querySQL, params=None, isMultipleParams=False):
+        self.fileDatabase.transaction()
         self.dbQuery.prepare(querySQL)
+
+        def runExec():
+            if self.dbQuery.exec():
+                self.fileDatabase.commit()
+                return True
+
+            else:
+                self.fileDatabase.rollback()
+                return False
+
         if params:
-            for param in params:
-                self.dbQuery.addBindValue(param)
+            if isMultipleParams:
+                for nPrm in params:
+                    for v in nPrm:
+                        self.dbQuery.addBindValue(v)
+                    if not runExec():
+                        raise Exception(f"DB Rollback Success: {self.dbQuery.lastError().text()}")
 
-        if not self.dbQuery.exec():
-            raise Exception(f"QSqlError: {self.dbQuery.lastError().text()}")
+            elif not isMultipleParams:
+                for v in params:
+                    self.dbQuery.addBindValue(v)
+                if not runExec():
+                    raise Exception(f"DB Rollback Success: {self.dbQuery.lastError().text()}")
 
-        if fetch:
-            hasil = []
-            while self.dbQuery.next():
-                row = tuple(self.dbQuery.value(i)
-                            for i in range(self.dbQuery.record().count()))
-                hasil.append(row)
-            return hasil
         else:
-            return True
+            if not runExec():
+                raise Exception(f"DB Rollback Success: {self.dbQuery.lastError().text()}")
+
+    def selectQuery(self, querySQL):
+        self.dbQuery.prepare(querySQL)
+        if not self.dbQuery.exec():
+            raise Exception(f"Select Error: {self.dbQuery.lastError().text()}")
+        _result = []
+        while self.dbQuery.next():
+            _result.append(tuple(
+                self.dbQuery.value(i) for i in range(self.dbQuery.record().count())
+            ))
+        return _result
 
 def verifyImageFile(filePath):
     """return nama file, ukuran awal, ekstensi file, format file, dukungan, tidak corrupt, bukan virus (0 uncheck 1 true 2 false)"""
@@ -136,7 +157,7 @@ def verifyImageFile(filePath):
     if imgPtr:
         imgPtr.close()
         del imgPtr
-    return (namaFile, ekstensiFile, formatFile, ukuranAwal, dukunganFile, tidakCorrupt, bukanVirus)
+    return (ekstensiFile, formatFile, ukuranAwal, dukunganFile, tidakCorrupt, bukanVirus, namaFile)
 
 def returnAllFileFromPath(dirs:os.PathLike, conn):
     """Return a list of file from a dir, also verify is file exists and file in valid image extension"""

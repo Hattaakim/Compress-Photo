@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'MainWindowWWDkdB.ui'
+## Form generated from reading UI file 'MainWindowfnEbjh.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.11.2
 ##
@@ -17,10 +17,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QCheckBox, QComboBox,
     QFrame, QGroupBox, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QMainWindow, QPushButton,
-    QRadioButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QSpinBox, QStackedWidget, QTableView, QVBoxLayout,
-    QWidget)
+    QLabel, QLineEdit, QMainWindow, QProgressBar,
+    QPushButton, QRadioButton, QScrollArea, QSizePolicy,
+    QSpacerItem, QSpinBox, QStackedWidget, QTableView,
+    QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -219,28 +219,24 @@ class Ui_MainWindow(object):
         self.menu1ScrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 306, 319))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 530, 456))
         self.verticalLayout_7 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.verticalLayout_6 = QVBoxLayout()
-        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
+        self.verticalLayout_5 = QVBoxLayout()
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.opsiFolder = QRadioButton(self.scrollAreaWidgetContents)
         self.opsiFolder.setObjectName(u"opsiFolder")
 
-        self.verticalLayout_6.addWidget(self.opsiFolder)
+        self.verticalLayout_5.addWidget(self.opsiFolder)
 
-        self.groupBox = QGroupBox(self.scrollAreaWidgetContents)
-        self.groupBox.setObjectName(u"groupBox")
-        self.verticalLayout_5 = QVBoxLayout(self.groupBox)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
-        self.folderBerisiFile = QLineEdit(self.groupBox)
+        self.folderBerisiFile = QLineEdit(self.scrollAreaWidgetContents)
         self.folderBerisiFile.setObjectName(u"folderBerisiFile")
 
         self.horizontalLayout_6.addWidget(self.folderBerisiFile)
 
-        self.pilihFolderFile = QPushButton(self.groupBox)
+        self.pilihFolderFile = QPushButton(self.scrollAreaWidgetContents)
         self.pilihFolderFile.setObjectName(u"pilihFolderFile")
 
         self.horizontalLayout_6.addWidget(self.pilihFolderFile)
@@ -248,28 +244,27 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addLayout(self.horizontalLayout_6)
 
-
-        self.verticalLayout_6.addWidget(self.groupBox)
-
         self.line = QFrame(self.scrollAreaWidgetContents)
         self.line.setObjectName(u"line")
-        self.line.setFrameShadow(QFrame.Shadow.Plain)
+        self.line.setFrameShadow(QFrame.Shadow.Raised)
         self.line.setFrameShape(QFrame.Shape.HLine)
 
-        self.verticalLayout_6.addWidget(self.line)
-
-        self.opsiFile = QRadioButton(self.scrollAreaWidgetContents)
-        self.opsiFile.setObjectName(u"opsiFile")
-
-        self.verticalLayout_6.addWidget(self.opsiFile)
-
-        self.fileTable = QTableView(self.scrollAreaWidgetContents)
-        self.fileTable.setObjectName(u"fileTable")
-
-        self.verticalLayout_6.addWidget(self.fileTable)
+        self.verticalLayout_5.addWidget(self.line)
 
         self.horizontalLayout_7 = QHBoxLayout()
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
+        self.opsiFile = QRadioButton(self.scrollAreaWidgetContents)
+        self.opsiFile.setObjectName(u"opsiFile")
+
+        self.horizontalLayout_7.addWidget(self.opsiFile)
+
+        self.line_8 = QFrame(self.scrollAreaWidgetContents)
+        self.line_8.setObjectName(u"line_8")
+        self.line_8.setFrameShape(QFrame.Shape.VLine)
+        self.line_8.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_7.addWidget(self.line_8)
+
         self.tambahFile = QPushButton(self.scrollAreaWidgetContents)
         self.tambahFile.setObjectName(u"tambahFile")
 
@@ -285,36 +280,41 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_7.addWidget(self.resetTable)
 
+        self.horizontalSpacer_9 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.verticalLayout_6.addLayout(self.horizontalLayout_7)
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_9)
+
+
+        self.verticalLayout_5.addLayout(self.horizontalLayout_7)
+
+        self.fileTable = QTableView(self.scrollAreaWidgetContents)
+        self.fileTable.setObjectName(u"fileTable")
+
+        self.verticalLayout_5.addWidget(self.fileTable)
 
         self.line_2 = QFrame(self.scrollAreaWidgetContents)
         self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShadow(QFrame.Shadow.Plain)
+        self.line_2.setFrameShadow(QFrame.Shadow.Raised)
         self.line_2.setFrameShape(QFrame.Shape.HLine)
 
-        self.verticalLayout_6.addWidget(self.line_2)
+        self.verticalLayout_5.addWidget(self.line_2)
 
-        self.horizontalLayout_8 = QHBoxLayout()
-        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
-        self.horizontalSpacer_9 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_14 = QHBoxLayout()
+        self.horizontalLayout_14.setObjectName(u"horizontalLayout_14")
+        self.horizontalSpacer_10 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_8.addItem(self.horizontalSpacer_9)
+        self.horizontalLayout_14.addItem(self.horizontalSpacer_10)
 
         self.pageOneLanjut = QPushButton(self.scrollAreaWidgetContents)
         self.pageOneLanjut.setObjectName(u"pageOneLanjut")
 
-        self.horizontalLayout_8.addWidget(self.pageOneLanjut)
+        self.horizontalLayout_14.addWidget(self.pageOneLanjut)
 
 
-        self.verticalLayout_6.addLayout(self.horizontalLayout_8)
-
-        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_6.addItem(self.verticalSpacer)
+        self.verticalLayout_5.addLayout(self.horizontalLayout_14)
 
 
-        self.verticalLayout_7.addLayout(self.verticalLayout_6)
+        self.verticalLayout_7.addLayout(self.verticalLayout_5)
 
         self.menu1ScrollArea.setWidget(self.scrollAreaWidgetContents)
 
@@ -330,11 +330,11 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents_2 = QWidget()
         self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, -91, 516, 547))
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, -44, 516, 500))
         self.verticalLayout_9 = QVBoxLayout(self.scrollAreaWidgetContents_2)
         self.verticalLayout_9.setObjectName(u"verticalLayout_9")
-        self.verticalLayout_8 = QVBoxLayout()
-        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
+        self.verticalLayout_6 = QVBoxLayout()
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.label_3 = QLabel(self.scrollAreaWidgetContents_2)
         self.label_3.setObjectName(u"label_3")
         font1 = QFont()
@@ -343,57 +343,78 @@ class Ui_MainWindow(object):
         self.label_3.setAlignment(Qt.AlignmentFlag.AlignJustify|Qt.AlignmentFlag.AlignVCenter)
         self.label_3.setWordWrap(True)
 
-        self.verticalLayout_8.addWidget(self.label_3)
+        self.verticalLayout_6.addWidget(self.label_3)
 
-        self.startVerify = QPushButton(self.scrollAreaWidgetContents_2)
-        self.startVerify.setObjectName(u"startVerify")
-
-        self.verticalLayout_8.addWidget(self.startVerify)
-
-        self.line_8 = QFrame(self.scrollAreaWidgetContents_2)
-        self.line_8.setObjectName(u"line_8")
-        self.line_8.setFrameShadow(QFrame.Shadow.Plain)
-        self.line_8.setFrameShape(QFrame.Shape.HLine)
-
-        self.verticalLayout_8.addWidget(self.line_8)
-
-        self.tabelVerifikasi = QTableView(self.scrollAreaWidgetContents_2)
-        self.tabelVerifikasi.setObjectName(u"tabelVerifikasi")
-
-        self.verticalLayout_8.addWidget(self.tabelVerifikasi)
-
-        self.fileVerifyProgress = QLabel(self.scrollAreaWidgetContents_2)
-        self.fileVerifyProgress.setObjectName(u"fileVerifyProgress")
-        font2 = QFont()
-        font2.setPointSize(12)
-        self.fileVerifyProgress.setFont(font2)
-        self.fileVerifyProgress.setStyleSheet(u"color: rgb(94, 92, 100) ")
-
-        self.verticalLayout_8.addWidget(self.fileVerifyProgress)
-
-        self.line_10 = QFrame(self.scrollAreaWidgetContents_2)
-        self.line_10.setObjectName(u"line_10")
-        self.line_10.setFrameShadow(QFrame.Shadow.Plain)
-        self.line_10.setFrameShape(QFrame.Shape.HLine)
-
-        self.verticalLayout_8.addWidget(self.line_10)
-
+        self.groupBox_5 = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.groupBox_5.setObjectName(u"groupBox_5")
+        self.groupBox_5.setStyleSheet(u"")
+        self.verticalLayout_15 = QVBoxLayout(self.groupBox_5)
+        self.verticalLayout_15.setObjectName(u"verticalLayout_15")
         self.horizontalLayout_9 = QHBoxLayout()
         self.horizontalLayout_9.setObjectName(u"horizontalLayout_9")
-        self.horizontalSpacer_10 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.fileVerifyProgress = QProgressBar(self.groupBox_5)
+        self.fileVerifyProgress.setObjectName(u"fileVerifyProgress")
+        self.fileVerifyProgress.setMaximumSize(QSize(250, 16777215))
+        self.fileVerifyProgress.setStyleSheet(u"QProgressBar{\n"
+"	border: 2px solid transparent;\n"
+"	text-align: center\n"
+"}\n"
+"QProgressBar::chunk{\n"
+"	background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 190, 0, 255), stop:1 rgba(95, 255, 0, 255));\n"
+"	border-radius:8px\n"
+"}")
+        self.fileVerifyProgress.setValue(0)
 
-        self.horizontalLayout_9.addItem(self.horizontalSpacer_10)
+        self.horizontalLayout_9.addWidget(self.fileVerifyProgress)
+
+        self.line_10 = QFrame(self.groupBox_5)
+        self.line_10.setObjectName(u"line_10")
+        self.line_10.setFrameShape(QFrame.Shape.VLine)
+        self.line_10.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.horizontalLayout_9.addWidget(self.line_10)
+
+        self.startVerify = QPushButton(self.groupBox_5)
+        self.startVerify.setObjectName(u"startVerify")
+
+        self.horizontalLayout_9.addWidget(self.startVerify)
+
+        self.reloadVerifyTable = QPushButton(self.groupBox_5)
+        self.reloadVerifyTable.setObjectName(u"reloadVerifyTable")
+
+        self.horizontalLayout_9.addWidget(self.reloadVerifyTable)
+
+        self.horizontalSpacer_13 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_9.addItem(self.horizontalSpacer_13)
+
+
+        self.verticalLayout_15.addLayout(self.horizontalLayout_9)
+
+        self.tabelVerifikasi = QTableView(self.groupBox_5)
+        self.tabelVerifikasi.setObjectName(u"tabelVerifikasi")
+
+        self.verticalLayout_15.addWidget(self.tabelVerifikasi)
+
+
+        self.verticalLayout_6.addWidget(self.groupBox_5)
+
+        self.horizontalLayout_13 = QHBoxLayout()
+        self.horizontalLayout_13.setObjectName(u"horizontalLayout_13")
+        self.horizontalSpacer_12 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_13.addItem(self.horizontalSpacer_12)
 
         self.pageTwoLanjut = QPushButton(self.scrollAreaWidgetContents_2)
         self.pageTwoLanjut.setObjectName(u"pageTwoLanjut")
 
-        self.horizontalLayout_9.addWidget(self.pageTwoLanjut)
+        self.horizontalLayout_13.addWidget(self.pageTwoLanjut)
 
 
-        self.verticalLayout_8.addLayout(self.horizontalLayout_9)
+        self.verticalLayout_6.addLayout(self.horizontalLayout_13)
 
 
-        self.verticalLayout_9.addLayout(self.verticalLayout_8)
+        self.verticalLayout_9.addLayout(self.verticalLayout_6)
 
         self.scrollArea.setWidget(self.scrollAreaWidgetContents_2)
 
@@ -429,6 +450,10 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_10 = QHBoxLayout()
         self.horizontalLayout_10.setObjectName(u"horizontalLayout_10")
+        self.verticalLayout_16 = QVBoxLayout()
+        self.verticalLayout_16.setObjectName(u"verticalLayout_16")
+        self.horizontalLayout_11 = QHBoxLayout()
+        self.horizontalLayout_11.setObjectName(u"horizontalLayout_11")
         self.groupBox_2 = QGroupBox(self.scrollAreaWidgetContents_3)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.verticalLayout_17 = QVBoxLayout(self.groupBox_2)
@@ -444,7 +469,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_17.addWidget(self.imgMpx)
 
 
-        self.horizontalLayout_10.addWidget(self.groupBox_2)
+        self.horizontalLayout_11.addWidget(self.groupBox_2)
 
         self.groupBox_4 = QGroupBox(self.scrollAreaWidgetContents_3)
         self.groupBox_4.setObjectName(u"groupBox_4")
@@ -460,83 +485,87 @@ class Ui_MainWindow(object):
         self.verticalLayout_24.addWidget(self.imgCompress)
 
 
-        self.horizontalLayout_10.addWidget(self.groupBox_4)
+        self.horizontalLayout_11.addWidget(self.groupBox_4)
 
 
-        self.verticalLayout_13.addLayout(self.horizontalLayout_10)
+        self.verticalLayout_16.addLayout(self.horizontalLayout_11)
 
         self.compressionTips = QLabel(self.scrollAreaWidgetContents_3)
         self.compressionTips.setObjectName(u"compressionTips")
-        font3 = QFont()
-        font3.setFamilies([u"Ubuntu"])
-        font3.setPointSize(10)
-        font3.setWeight(QFont.Thin)
-        self.compressionTips.setFont(font3)
+        font2 = QFont()
+        font2.setFamilies([u"Ubuntu"])
+        font2.setPointSize(10)
+        font2.setWeight(QFont.Thin)
+        self.compressionTips.setFont(font2)
 
-        self.verticalLayout_13.addWidget(self.compressionTips)
+        self.verticalLayout_16.addWidget(self.compressionTips)
+
+        self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents_3)
+        self.groupBox_3.setObjectName(u"groupBox_3")
+        self.horizontalLayout_12 = QHBoxLayout(self.groupBox_3)
+        self.horizontalLayout_12.setObjectName(u"horizontalLayout_12")
+        self.dirTujuan = QLineEdit(self.groupBox_3)
+        self.dirTujuan.setObjectName(u"dirTujuan")
+
+        self.horizontalLayout_12.addWidget(self.dirTujuan)
+
+        self.pilihFolder = QPushButton(self.groupBox_3)
+        self.pilihFolder.setObjectName(u"pilihFolder")
+
+        self.horizontalLayout_12.addWidget(self.pilihFolder)
+
+
+        self.verticalLayout_16.addWidget(self.groupBox_3)
+
+        self.hapusFIleAsli = QCheckBox(self.scrollAreaWidgetContents_3)
+        self.hapusFIleAsli.setObjectName(u"hapusFIleAsli")
+
+        self.verticalLayout_16.addWidget(self.hapusFIleAsli)
 
         self.line_6 = QFrame(self.scrollAreaWidgetContents_3)
         self.line_6.setObjectName(u"line_6")
         self.line_6.setFrameShape(QFrame.Shape.HLine)
         self.line_6.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.verticalLayout_13.addWidget(self.line_6)
+        self.verticalLayout_16.addWidget(self.line_6)
 
-        self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents_3)
-        self.groupBox_3.setObjectName(u"groupBox_3")
-        self.horizontalLayout_11 = QHBoxLayout(self.groupBox_3)
-        self.horizontalLayout_11.setObjectName(u"horizontalLayout_11")
-        self.dirTujuan = QLineEdit(self.groupBox_3)
-        self.dirTujuan.setObjectName(u"dirTujuan")
-
-        self.horizontalLayout_11.addWidget(self.dirTujuan)
-
-        self.pilihFolder = QPushButton(self.groupBox_3)
-        self.pilihFolder.setObjectName(u"pilihFolder")
-
-        self.horizontalLayout_11.addWidget(self.pilihFolder)
-
-
-        self.verticalLayout_13.addWidget(self.groupBox_3)
-
-        self.hapusFIleAsli = QCheckBox(self.scrollAreaWidgetContents_3)
-        self.hapusFIleAsli.setObjectName(u"hapusFIleAsli")
-
-        self.verticalLayout_13.addWidget(self.hapusFIleAsli)
-
-        self.line_9 = QFrame(self.scrollAreaWidgetContents_3)
-        self.line_9.setObjectName(u"line_9")
-        self.line_9.setFrameShape(QFrame.Shape.HLine)
-        self.line_9.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.verticalLayout_13.addWidget(self.line_9)
-
-        self.dataSummary = QLabel(self.scrollAreaWidgetContents_3)
-        self.dataSummary.setObjectName(u"dataSummary")
-        self.dataSummary.setFont(font3)
-
-        self.verticalLayout_13.addWidget(self.dataSummary)
-
-        self.line_11 = QFrame(self.scrollAreaWidgetContents_3)
-        self.line_11.setObjectName(u"line_11")
-        self.line_11.setFrameShape(QFrame.Shape.HLine)
-        self.line_11.setFrameShadow(QFrame.Shadow.Sunken)
-
-        self.verticalLayout_13.addWidget(self.line_11)
-
-        self.horizontalLayout_12 = QHBoxLayout()
-        self.horizontalLayout_12.setObjectName(u"horizontalLayout_12")
+        self.horizontalLayout_15 = QHBoxLayout()
+        self.horizontalLayout_15.setObjectName(u"horizontalLayout_15")
         self.horizontalSpacer_11 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_12.addItem(self.horizontalSpacer_11)
+        self.horizontalLayout_15.addItem(self.horizontalSpacer_11)
 
         self.pageThreeNext = QPushButton(self.scrollAreaWidgetContents_3)
         self.pageThreeNext.setObjectName(u"pageThreeNext")
 
-        self.horizontalLayout_12.addWidget(self.pageThreeNext)
+        self.horizontalLayout_15.addWidget(self.pageThreeNext)
 
 
-        self.verticalLayout_13.addLayout(self.horizontalLayout_12)
+        self.verticalLayout_16.addLayout(self.horizontalLayout_15)
+
+
+        self.horizontalLayout_10.addLayout(self.verticalLayout_16)
+
+        self.groupBox = QGroupBox(self.scrollAreaWidgetContents_3)
+        self.groupBox.setObjectName(u"groupBox")
+        self.verticalLayout_20 = QVBoxLayout(self.groupBox)
+        self.verticalLayout_20.setObjectName(u"verticalLayout_20")
+        self.dataSummary = QLabel(self.groupBox)
+        self.dataSummary.setObjectName(u"dataSummary")
+        font3 = QFont()
+        font3.setFamilies([u"Ubuntu Sans"])
+        font3.setPointSize(10)
+        font3.setBold(False)
+        self.dataSummary.setFont(font3)
+        self.dataSummary.setAlignment(Qt.AlignmentFlag.AlignLeading|Qt.AlignmentFlag.AlignLeft|Qt.AlignmentFlag.AlignTop)
+
+        self.verticalLayout_20.addWidget(self.dataSummary)
+
+
+        self.horizontalLayout_10.addWidget(self.groupBox)
+
+
+        self.verticalLayout_13.addLayout(self.horizontalLayout_10)
 
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
@@ -559,47 +588,72 @@ class Ui_MainWindow(object):
         self.scrollArea_3.setWidgetResizable(True)
         self.scrollAreaWidgetContents_4 = QWidget()
         self.scrollAreaWidgetContents_4.setObjectName(u"scrollAreaWidgetContents_4")
-        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, -145, 516, 601))
+        self.scrollAreaWidgetContents_4.setGeometry(QRect(0, -97, 516, 553))
         self.verticalLayout_21 = QVBoxLayout(self.scrollAreaWidgetContents_4)
         self.verticalLayout_21.setObjectName(u"verticalLayout_21")
-        self.verticalLayout_14 = QVBoxLayout()
-        self.verticalLayout_14.setObjectName(u"verticalLayout_14")
+        self.verticalLayout_8 = QVBoxLayout()
+        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
         self.label_9 = QLabel(self.scrollAreaWidgetContents_4)
         self.label_9.setObjectName(u"label_9")
         self.label_9.setWordWrap(True)
 
-        self.verticalLayout_14.addWidget(self.label_9)
+        self.verticalLayout_8.addWidget(self.label_9)
 
-        self.line_7 = QFrame(self.scrollAreaWidgetContents_4)
+        self.groupBox_7 = QGroupBox(self.scrollAreaWidgetContents_4)
+        self.groupBox_7.setObjectName(u"groupBox_7")
+        self.verticalLayout_14 = QVBoxLayout(self.groupBox_7)
+        self.verticalLayout_14.setObjectName(u"verticalLayout_14")
+        self.horizontalLayout_8 = QHBoxLayout()
+        self.horizontalLayout_8.setObjectName(u"horizontalLayout_8")
+        self.fileCompressionProgress = QProgressBar(self.groupBox_7)
+        self.fileCompressionProgress.setObjectName(u"fileCompressionProgress")
+        self.fileCompressionProgress.setMaximumSize(QSize(16777215, 16777215))
+        self.fileCompressionProgress.setStyleSheet(u"QProgressBar{\n"
+"	border: 2px solid transparent;\n"
+"	text-align: center\n"
+"}\n"
+"QProgressBar::chunk{\n"
+"	background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 190, 0, 255), stop:1 rgba(95, 255, 0, 255));\n"
+"	border-radius:8px\n"
+"}")
+        self.fileCompressionProgress.setValue(0)
+
+        self.horizontalLayout_8.addWidget(self.fileCompressionProgress)
+
+        self.line_7 = QFrame(self.groupBox_7)
         self.line_7.setObjectName(u"line_7")
-        self.line_7.setFrameShape(QFrame.Shape.HLine)
+        self.line_7.setFrameShape(QFrame.Shape.VLine)
         self.line_7.setFrameShadow(QFrame.Shadow.Sunken)
 
-        self.verticalLayout_14.addWidget(self.line_7)
+        self.horizontalLayout_8.addWidget(self.line_7)
 
-        self.startCompression = QPushButton(self.scrollAreaWidgetContents_4)
+        self.startCompression = QPushButton(self.groupBox_7)
         self.startCompression.setObjectName(u"startCompression")
 
-        self.verticalLayout_14.addWidget(self.startCompression)
+        self.horizontalLayout_8.addWidget(self.startCompression)
 
-        self.fileCompressionTable = QTableView(self.scrollAreaWidgetContents_4)
+        self.refreshCompressTable = QPushButton(self.groupBox_7)
+        self.refreshCompressTable.setObjectName(u"refreshCompressTable")
+
+        self.horizontalLayout_8.addWidget(self.refreshCompressTable)
+
+        self.horizontalSpacer_14 = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_8.addItem(self.horizontalSpacer_14)
+
+
+        self.verticalLayout_14.addLayout(self.horizontalLayout_8)
+
+        self.fileCompressionTable = QTableView(self.groupBox_7)
         self.fileCompressionTable.setObjectName(u"fileCompressionTable")
 
         self.verticalLayout_14.addWidget(self.fileCompressionTable)
 
-        self.fileCompressionProgress = QLabel(self.scrollAreaWidgetContents_4)
-        self.fileCompressionProgress.setObjectName(u"fileCompressionProgress")
-        self.fileCompressionProgress.setFont(font2)
-        self.fileCompressionProgress.setStyleSheet(u"color: rgb(94, 92, 100) ")
 
-        self.verticalLayout_14.addWidget(self.fileCompressionProgress)
-
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_14.addItem(self.verticalSpacer_3)
+        self.verticalLayout_8.addWidget(self.groupBox_7)
 
 
-        self.verticalLayout_21.addLayout(self.verticalLayout_14)
+        self.verticalLayout_21.addLayout(self.verticalLayout_8)
 
         self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_4)
 
@@ -616,7 +670,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
 
-        self.stackedWidget.setCurrentIndex(3)
+        self.stackedWidget.setCurrentIndex(0)
         self.imgMpx.setCurrentIndex(0)
 
 
@@ -636,10 +690,9 @@ class Ui_MainWindow(object):
         self.stepFourNumber.setText(QCoreApplication.translate("MainWindow", u"4", None))
         self.stepFourTitle.setText(QCoreApplication.translate("MainWindow", u"Proses dan Hasil", None))
         self.opsiFolder.setText(QCoreApplication.translate("MainWindow", u"Gunakan Folder berisi File", None))
-        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Direktori Folder (Otomatis)", None))
         self.folderBerisiFile.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Klik pilih folder untuk melanjutkan!", None))
         self.pilihFolderFile.setText(QCoreApplication.translate("MainWindow", u"Pilih Folder", None))
-        self.opsiFile.setText(QCoreApplication.translate("MainWindow", u"Pilih File (Mendukung Drag and Drop)", None))
+        self.opsiFile.setText(QCoreApplication.translate("MainWindow", u"Pilih FIle (Drag and Drop)", None))
         self.tambahFile.setText(QCoreApplication.translate("MainWindow", u"Tambah File", None))
         self.hapusFile.setText(QCoreApplication.translate("MainWindow", u"Hapus File", None))
         self.resetTable.setText(QCoreApplication.translate("MainWindow", u"Reset Tabel", None))
@@ -652,9 +705,11 @@ class Ui_MainWindow(object):
 "li.checked::marker { content: \"\\2612\"; }\n"
 "</style></head><body style=\" font-family:'Ubuntu'; font-size:11pt; font-weight:400; font-style:normal;\">\n"
 "<p align=\"justify\" style=\" margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-family:'Ubuntu Sans';\">Sistem akan melakukan verifikasi data untuk setiap file yang Anda masukkan demi kelancaran proses selanjutnya. Anda harus memperhatikan notasi pada 3 kolom untuk mengetahui lulus/tidaknya file yang ingin dikompresi dari proses verifikasi. 3 kolom yang dimaksud adalah [File Didukung] [Integritas File] dan [File Aman], dengan notasi:<br />&q"
-                        "uot;!&quot; -&gt; Proses verifikasi dilewatkan karena file rusak atau mengandung virus<br />&quot;</span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px\">\u2717&quot; </span><span style=\" font-family:'Ubuntu Sans';\">-&gt; File tidak didukung, rusak, ataupun terdeteksi mengandung virus<br />&quot;</span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;\">\u2714&quot; </span><span style=\" font-family:'Ubuntu Sans';\">-&gt; File siap untuk diproses<br />&quot;?&quot; -&gt; Notasi khusus ketika terjadinya kesalahan pada sistem pengecekan<br /><br />Silahkan mulai proses verifikasi dengan menekan tombol dibawah ini:<br /></span></p></body></html>", None))
+                        "uot;!&quot; -&gt; Proses verifikasi dilewatkan karena file rusak atau mengandung virus<br />&quot;</span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;\">\u2717&quot; </span><span style=\" font-family:'Ubuntu Sans';\">-&gt; File tidak didukung, rusak, ataupun terdeteksi mengandung virus<br />&quot;</span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;\">\u2714&quot; </span><span style=\" font-family:'Ubuntu Sans';\">-&gt; File siap untuk diproses<br />&quot;?&quot; -&gt; Notasi khusus ketika terjadinya kesalahan pada sistem pengecekan<br /></span></p></body></html>", None))
+        self.groupBox_5.setTitle("")
+        self.fileVerifyProgress.setFormat(QCoreApplication.translate("MainWindow", u"%v / %m File", None))
         self.startVerify.setText(QCoreApplication.translate("MainWindow", u"Mulai Verifikasi", None))
-        self.fileVerifyProgress.setText(QCoreApplication.translate("MainWindow", u"n/n File Diproses", None))
+        self.reloadVerifyTable.setText(QCoreApplication.translate("MainWindow", u"Refresh Tabel", None))
         self.pageTwoLanjut.setText(QCoreApplication.translate("MainWindow", u"Lanjutkan", None))
         self.label_8.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"justify\">Sebagai referensi, Google Foto menetapkan kompresi 12Mp bagi gambar yang Anda unggah untuk menghemat penyimpanan Anda. Anda direkomendasikan untuk memilih pengaturan dengan tingkat Megapiksel <span style=\" font-weight:700;\">12Mp</span> dan Kualitas Gambar <span style=\" font-weight:700;\">85%</span> agar kualitas dari gambar Anda tidak menurun secara drastis.</p></body></html>", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("MainWindow", u"Megapiksel Gambar", None))
@@ -671,11 +726,14 @@ class Ui_MainWindow(object):
         self.dirTujuan.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Klik pilih folder untuk memilih lokasi", None))
         self.pilihFolder.setText(QCoreApplication.translate("MainWindow", u"Pilih Folder", None))
         self.hapusFIleAsli.setText(QCoreApplication.translate("MainWindow", u"Hapus File Asli (Tidak Direkomendasikan)", None))
-        self.dataSummary.setText(QCoreApplication.translate("MainWindow", u"Ringkasan Kompresi:", None))
         self.pageThreeNext.setText(QCoreApplication.translate("MainWindow", u"Lanjut", None))
+        self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"Ringkasan Kompresi", None))
+        self.dataSummary.setText(QCoreApplication.translate("MainWindow", u"-", None))
         self.label_9.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"justify\">Kompresi tidak berjalan secara otomatis. Anda menjalankannya secara manual menekan tombol Mulai. Waktu yang digunakan untuk proses kompresi tergantung dari seberapa cepat dan banyaknya utas pada prosesor perangkat Anda. Silahkan tunggu proses kompresi hingga selesai. Tabel di bawah ini akan menunjukkan proses waktu nyata ketika kompresi sedang berlangsung. </p><p align=\"justify\"><span style=\" font-weight:700;\">Kepala Tabel:</span><br/>[Size Akhir] -&gt; Menunjukkan ukuran foto setelah dikompresi<br/>[Dihemat] -&gt; Taraf penghematan ukuran oleh algoritma kompresi<br/>[Status] -&gt; Progres kompresi (<span style=\" font-weight:700;\">Parameter Simbol</span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif';\">)</span><br/>[Disimpan Di] -&gt; Lokasi penyimpanan untuk setiap foto hasil kompresi<br/>[Di Hapus] -&gt; Berlaku saat Hapus File Asli menyala (<span style=\" font-weight:700;\">Parameter Simbol)<br/><b"
                         "r/>Parameter Simbol: </span><span style=\" font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif';\">\u2714 = Sukses | \u2717 = Gagal | - = Tidak Dimulai</span></p></body></html>", None))
-        self.startCompression.setText(QCoreApplication.translate("MainWindow", u"Mulai", None))
-        self.fileCompressionProgress.setText(QCoreApplication.translate("MainWindow", u"Kompresi belum dimulai. Sistem sudah siap!", None))
+        self.groupBox_7.setTitle("")
+        self.fileCompressionProgress.setFormat(QCoreApplication.translate("MainWindow", u"%v / %m File", None))
+        self.startCompression.setText(QCoreApplication.translate("MainWindow", u"Mulai Proses", None))
+        self.refreshCompressTable.setText(QCoreApplication.translate("MainWindow", u"Refresh Tabel", None))
     # retranslateUi
 

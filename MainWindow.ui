@@ -371,7 +371,7 @@
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>0</number>
         </property>
         <widget class="QWidget" name="page">
          <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -385,13 +385,13 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>306</width>
-               <height>319</height>
+               <width>530</width>
+               <height>456</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_6">
+               <layout class="QVBoxLayout" name="verticalLayout_5">
                 <item>
                  <widget class="QRadioButton" name="opsiFolder">
                   <property name="text">
@@ -400,36 +400,27 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QGroupBox" name="groupBox">
-                  <property name="title">
-                   <string>Direktori Folder (Otomatis)</string>
-                  </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_5">
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_6">
-                     <item>
-                      <widget class="QLineEdit" name="folderBerisiFile">
-                       <property name="placeholderText">
-                        <string>Klik pilih folder untuk melanjutkan!</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QPushButton" name="pilihFolderFile">
-                       <property name="text">
-                        <string>Pilih Folder</string>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </item>
-                  </layout>
-                 </widget>
+                 <layout class="QHBoxLayout" name="horizontalLayout_6">
+                  <item>
+                   <widget class="QLineEdit" name="folderBerisiFile">
+                    <property name="placeholderText">
+                     <string>Klik pilih folder untuk melanjutkan!</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="pilihFolderFile">
+                    <property name="text">
+                     <string>Pilih Folder</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </item>
                 <item>
                  <widget class="Line" name="line">
                   <property name="frameShadow">
-                   <enum>QFrame::Shadow::Plain</enum>
+                   <enum>QFrame::Shadow::Raised</enum>
                   </property>
                   <property name="orientation">
                    <enum>Qt::Orientation::Horizontal</enum>
@@ -437,17 +428,21 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QRadioButton" name="opsiFile">
-                  <property name="text">
-                   <string>Pilih File (Mendukung Drag and Drop)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QTableView" name="fileTable"/>
-                </item>
-                <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_7">
+                  <item>
+                   <widget class="QRadioButton" name="opsiFile">
+                    <property name="text">
+                     <string>Pilih FIle (Drag and Drop)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="Line" name="line_8">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Vertical</enum>
+                    </property>
+                   </widget>
+                  </item>
                   <item>
                    <widget class="QPushButton" name="tambahFile">
                     <property name="text">
@@ -469,12 +464,28 @@
                     </property>
                    </widget>
                   </item>
+                  <item>
+                   <spacer name="horizontalSpacer_9">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
                  </layout>
+                </item>
+                <item>
+                 <widget class="QTableView" name="fileTable"/>
                 </item>
                 <item>
                  <widget class="Line" name="line_2">
                   <property name="frameShadow">
-                   <enum>QFrame::Shadow::Plain</enum>
+                   <enum>QFrame::Shadow::Raised</enum>
                   </property>
                   <property name="orientation">
                    <enum>Qt::Orientation::Horizontal</enum>
@@ -482,9 +493,9 @@
                  </widget>
                 </item>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_8">
+                 <layout class="QHBoxLayout" name="horizontalLayout_14">
                   <item>
-                   <spacer name="horizontalSpacer_9">
+                   <spacer name="horizontalSpacer_10">
                     <property name="orientation">
                      <enum>Qt::Orientation::Horizontal</enum>
                     </property>
@@ -505,19 +516,6 @@
                   </item>
                  </layout>
                 </item>
-                <item>
-                 <spacer name="verticalSpacer">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>20</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
                </layout>
               </item>
              </layout>
@@ -537,14 +535,14 @@
              <property name="geometry">
               <rect>
                <x>0</x>
-               <y>-91</y>
+               <y>-44</y>
                <width>516</width>
-               <height>547</height>
+               <height>500</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_9">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_8">
+               <layout class="QVBoxLayout" name="verticalLayout_6">
                 <item>
                  <widget class="QLabel" name="label_3">
                   <property name="font">
@@ -560,7 +558,7 @@ hr { height: 1px; border-width: 0; }
 li.unchecked::marker { content: &quot;\2610&quot;; }
 li.checked::marker { content: &quot;\2612&quot;; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Ubuntu'; font-size:11pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p align=&quot;justify&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;Sistem akan melakukan verifikasi data untuk setiap file yang Anda masukkan demi kelancaran proses selanjutnya. Anda harus memperhatikan notasi pada 3 kolom untuk mengetahui lulus/tidaknya file yang ingin dikompresi dari proses verifikasi. 3 kolom yang dimaksud adalah [File Didukung] [Integritas File] dan [File Aman], dengan notasi:&lt;br /&gt;&amp;quot;!&amp;quot; -&amp;gt; Proses verifikasi dilewatkan karena file rusak atau mengandung virus&lt;br /&gt;&amp;quot;&lt;/span&gt;&lt;span style=&quot; font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px&quot;&gt;✗&amp;quot; &lt;/span&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;-&amp;gt; File tidak didukung, rusak, ataupun terdeteksi mengandung virus&lt;br /&gt;&amp;quot;&lt;/span&gt;&lt;span style=&quot; font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;&quot;&gt;✔&amp;quot; &lt;/span&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;-&amp;gt; File siap untuk diproses&lt;br /&gt;&amp;quot;?&amp;quot; -&amp;gt; Notasi khusus ketika terjadinya kesalahan pada sistem pengecekan&lt;br /&gt;&lt;br /&gt;Silahkan mulai proses verifikasi dengan menekan tombol dibawah ini:&lt;br /&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+&lt;p align=&quot;justify&quot; style=&quot; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;Sistem akan melakukan verifikasi data untuk setiap file yang Anda masukkan demi kelancaran proses selanjutnya. Anda harus memperhatikan notasi pada 3 kolom untuk mengetahui lulus/tidaknya file yang ingin dikompresi dari proses verifikasi. 3 kolom yang dimaksud adalah [File Didukung] [Integritas File] dan [File Aman], dengan notasi:&lt;br /&gt;&amp;quot;!&amp;quot; -&amp;gt; Proses verifikasi dilewatkan karena file rusak atau mengandung virus&lt;br /&gt;&amp;quot;&lt;/span&gt;&lt;span style=&quot; font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;&quot;&gt;✗&amp;quot; &lt;/span&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;-&amp;gt; File tidak didukung, rusak, ataupun terdeteksi mengandung virus&lt;br /&gt;&amp;quot;&lt;/span&gt;&lt;span style=&quot; font-family:'-apple-system','BlinkMacSystemFont','Avenir Next','Avenir','Helvetica','sans-serif'; font-size:14px;&quot;&gt;✔&amp;quot; &lt;/span&gt;&lt;span style=&quot; font-family:'Ubuntu Sans';&quot;&gt;-&amp;gt; File siap untuk diproses&lt;br /&gt;&amp;quot;?&amp;quot; -&amp;gt; Notasi khusus ketika terjadinya kesalahan pada sistem pengecekan&lt;br /&gt;&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignmentFlag::AlignJustify|Qt::AlignmentFlag::AlignVCenter</set>
@@ -571,54 +569,88 @@ li.checked::marker { content: &quot;\2612&quot;; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="QPushButton" name="startVerify">
-                  <property name="text">
-                   <string>Mulai Verifikasi</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="Line" name="line_8">
-                  <property name="frameShadow">
-                   <enum>QFrame::Shadow::Plain</enum>
-                  </property>
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QTableView" name="tabelVerifikasi"/>
-                </item>
-                <item>
-                 <widget class="QLabel" name="fileVerifyProgress">
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                   </font>
-                  </property>
+                 <widget class="QGroupBox" name="groupBox_5">
                   <property name="styleSheet">
-                   <string notr="true">color: rgb(94, 92, 100) </string>
+                   <string notr="true"/>
                   </property>
-                  <property name="text">
-                   <string>n/n File Diproses</string>
+                  <property name="title">
+                   <string/>
                   </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_15">
+                   <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_9">
+                     <item>
+                      <widget class="QProgressBar" name="fileVerifyProgress">
+                       <property name="maximumSize">
+                        <size>
+                         <width>250</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">QProgressBar{
+	border: 2px solid transparent;
+	text-align: center
+}
+QProgressBar::chunk{
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 190, 0, 255), stop:1 rgba(95, 255, 0, 255));
+	border-radius:8px
+}</string>
+                       </property>
+                       <property name="value">
+                        <number>0</number>
+                       </property>
+                       <property name="format">
+                        <string>%v / %m File</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="Line" name="line_10">
+                       <property name="orientation">
+                        <enum>Qt::Orientation::Vertical</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="startVerify">
+                       <property name="text">
+                        <string>Mulai Verifikasi</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="reloadVerifyTable">
+                       <property name="text">
+                        <string>Refresh Tabel</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_13">
+                       <property name="orientation">
+                        <enum>Qt::Orientation::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <widget class="QTableView" name="tabelVerifikasi"/>
+                   </item>
+                  </layout>
                  </widget>
                 </item>
                 <item>
-                 <widget class="Line" name="line_10">
-                  <property name="frameShadow">
-                   <enum>QFrame::Shadow::Plain</enum>
-                  </property>
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_9">
+                 <layout class="QHBoxLayout" name="horizontalLayout_13">
                   <item>
-                   <spacer name="horizontalSpacer_10">
+                   <spacer name="horizontalSpacer_12">
                     <property name="orientation">
                      <enum>Qt::Orientation::Horizontal</enum>
                     </property>
@@ -686,175 +718,181 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_10">
                   <item>
-                   <widget class="QGroupBox" name="groupBox_2">
+                   <layout class="QVBoxLayout" name="verticalLayout_16">
+                    <item>
+                     <layout class="QHBoxLayout" name="horizontalLayout_11">
+                      <item>
+                       <widget class="QGroupBox" name="groupBox_2">
+                        <property name="title">
+                         <string>Megapiksel Gambar</string>
+                        </property>
+                        <layout class="QVBoxLayout" name="verticalLayout_17">
+                         <item>
+                          <widget class="QComboBox" name="imgMpx">
+                           <property name="currentIndex">
+                            <number>0</number>
+                           </property>
+                           <item>
+                            <property name="text">
+                             <string>20Mp</string>
+                            </property>
+                           </item>
+                           <item>
+                            <property name="text">
+                             <string>12Mp</string>
+                            </property>
+                           </item>
+                           <item>
+                            <property name="text">
+                             <string>10Mp</string>
+                            </property>
+                           </item>
+                           <item>
+                            <property name="text">
+                             <string>8Mp</string>
+                            </property>
+                           </item>
+                           <item>
+                            <property name="text">
+                             <string>6Mp</string>
+                            </property>
+                           </item>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QGroupBox" name="groupBox_4">
+                        <property name="title">
+                         <string>Kualitas Gambar</string>
+                        </property>
+                        <layout class="QVBoxLayout" name="verticalLayout_24">
+                         <item>
+                          <widget class="QSpinBox" name="imgCompress">
+                           <property name="suffix">
+                            <string>%</string>
+                           </property>
+                           <property name="minimum">
+                            <number>1</number>
+                           </property>
+                           <property name="maximum">
+                            <number>100</number>
+                           </property>
+                           <property name="stepType">
+                            <enum>QAbstractSpinBox::StepType::DefaultStepType</enum>
+                           </property>
+                           <property name="value">
+                            <number>85</number>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <widget class="QLabel" name="compressionTips">
+                      <property name="font">
+                       <font>
+                        <family>Ubuntu</family>
+                        <pointsize>10</pointsize>
+                        <fontweight>Thin</fontweight>
+                       </font>
+                      </property>
+                      <property name="text">
+                       <string>Saran: Semua terlihat baik!</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QGroupBox" name="groupBox_3">
+                      <property name="title">
+                       <string>Lokasi Penyimpanan File</string>
+                      </property>
+                      <layout class="QHBoxLayout" name="horizontalLayout_12">
+                       <item>
+                        <widget class="QLineEdit" name="dirTujuan">
+                         <property name="placeholderText">
+                          <string>Klik pilih folder untuk memilih lokasi</string>
+                         </property>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QPushButton" name="pilihFolder">
+                         <property name="text">
+                          <string>Pilih Folder</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QCheckBox" name="hapusFIleAsli">
+                      <property name="text">
+                       <string>Hapus File Asli (Tidak Direkomendasikan)</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="Line" name="line_6">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="horizontalLayout_15">
+                      <item>
+                       <spacer name="horizontalSpacer_11">
+                        <property name="orientation">
+                         <enum>Qt::Orientation::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>40</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="pageThreeNext">
+                        <property name="text">
+                         <string>Lanjut</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="QGroupBox" name="groupBox">
                     <property name="title">
-                     <string>Megapiksel Gambar</string>
+                     <string>Ringkasan Kompresi</string>
                     </property>
-                    <layout class="QVBoxLayout" name="verticalLayout_17">
+                    <layout class="QVBoxLayout" name="verticalLayout_20">
                      <item>
-                      <widget class="QComboBox" name="imgMpx">
-                       <property name="currentIndex">
-                        <number>0</number>
+                      <widget class="QLabel" name="dataSummary">
+                       <property name="font">
+                        <font>
+                         <family>Ubuntu Sans</family>
+                         <pointsize>10</pointsize>
+                         <bold>false</bold>
+                        </font>
                        </property>
-                       <item>
-                        <property name="text">
-                         <string>20Mp</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>12Mp</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>10Mp</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>8Mp</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>6Mp</string>
-                        </property>
-                       </item>
+                       <property name="text">
+                        <string>-</string>
+                       </property>
+                       <property name="alignment">
+                        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+                       </property>
                       </widget>
                      </item>
                     </layout>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QGroupBox" name="groupBox_4">
-                    <property name="title">
-                     <string>Kualitas Gambar</string>
-                    </property>
-                    <layout class="QVBoxLayout" name="verticalLayout_24">
-                     <item>
-                      <widget class="QSpinBox" name="imgCompress">
-                       <property name="suffix">
-                        <string>%</string>
-                       </property>
-                       <property name="minimum">
-                        <number>1</number>
-                       </property>
-                       <property name="maximum">
-                        <number>100</number>
-                       </property>
-                       <property name="stepType">
-                        <enum>QAbstractSpinBox::StepType::DefaultStepType</enum>
-                       </property>
-                       <property name="value">
-                        <number>85</number>
-                       </property>
-                      </widget>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <widget class="QLabel" name="compressionTips">
-                  <property name="font">
-                   <font>
-                    <family>Ubuntu</family>
-                    <pointsize>10</pointsize>
-                    <fontweight>Thin</fontweight>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>Saran: Semua terlihat baik!</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="Line" name="line_6">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QGroupBox" name="groupBox_3">
-                  <property name="title">
-                   <string>Lokasi Penyimpanan File</string>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_11">
-                   <item>
-                    <widget class="QLineEdit" name="dirTujuan">
-                     <property name="placeholderText">
-                      <string>Klik pilih folder untuk memilih lokasi</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QPushButton" name="pilihFolder">
-                     <property name="text">
-                      <string>Pilih Folder</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QCheckBox" name="hapusFIleAsli">
-                  <property name="text">
-                   <string>Hapus File Asli (Tidak Direkomendasikan)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="Line" name="line_9">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="dataSummary">
-                  <property name="font">
-                   <font>
-                    <family>Ubuntu</family>
-                    <pointsize>10</pointsize>
-                    <fontweight>Thin</fontweight>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>Ringkasan Kompresi:</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="Line" name="line_11">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_12">
-                  <item>
-                   <spacer name="horizontalSpacer_11">
-                    <property name="orientation">
-                     <enum>Qt::Orientation::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>40</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="pageThreeNext">
-                    <property name="text">
-                     <string>Lanjut</string>
-                    </property>
                    </widget>
                   </item>
                  </layout>
@@ -891,14 +929,14 @@ li.checked::marker { content: &quot;\2612&quot;; }
              <property name="geometry">
               <rect>
                <x>0</x>
-               <y>-145</y>
+               <y>-97</y>
                <width>516</width>
-               <height>601</height>
+               <height>553</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_21">
               <item>
-               <layout class="QVBoxLayout" name="verticalLayout_14">
+               <layout class="QVBoxLayout" name="verticalLayout_8">
                 <item>
                  <widget class="QLabel" name="label_9">
                   <property name="text">
@@ -910,49 +948,80 @@ li.checked::marker { content: &quot;\2612&quot;; }
                  </widget>
                 </item>
                 <item>
-                 <widget class="Line" name="line_7">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Horizontal</enum>
+                 <widget class="QGroupBox" name="groupBox_7">
+                  <property name="title">
+                   <string/>
                   </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_14">
+                   <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_8">
+                     <item>
+                      <widget class="QProgressBar" name="fileCompressionProgress">
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>16777215</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">QProgressBar{
+	border: 2px solid transparent;
+	text-align: center
+}
+QProgressBar::chunk{
+	background: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 190, 0, 255), stop:1 rgba(95, 255, 0, 255));
+	border-radius:8px
+}</string>
+                       </property>
+                       <property name="value">
+                        <number>0</number>
+                       </property>
+                       <property name="format">
+                        <string>%v / %m File</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="Line" name="line_7">
+                       <property name="orientation">
+                        <enum>Qt::Orientation::Vertical</enum>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="startCompression">
+                       <property name="text">
+                        <string>Mulai Proses</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="refreshCompressTable">
+                       <property name="text">
+                        <string>Refresh Tabel</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_14">
+                       <property name="orientation">
+                        <enum>Qt::Orientation::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <widget class="QTableView" name="fileCompressionTable"/>
+                   </item>
+                  </layout>
                  </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="startCompression">
-                  <property name="text">
-                   <string>Mulai</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QTableView" name="fileCompressionTable"/>
-                </item>
-                <item>
-                 <widget class="QLabel" name="fileCompressionProgress">
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                   </font>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">color: rgb(94, 92, 100) </string>
-                  </property>
-                  <property name="text">
-                   <string>Kompresi belum dimulai. Sistem sudah siap!</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <spacer name="verticalSpacer_3">
-                  <property name="orientation">
-                   <enum>Qt::Orientation::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>20</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                 </spacer>
                 </item>
                </layout>
               </item>
