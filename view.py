@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QAbstractItemView, QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox, QListWidget, QStyledItemDelegate
 from PySide6.QtCore import QEvent, QObject, QStandardPaths, QTimer, Qt
-from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtSql import QSqlTableModel
 import sys, os, math
@@ -251,6 +251,8 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                          1: [self.stepTwoNumber, self.stepTwoTitle],
                          2: [self.stepThreeNumber, self.stepThreeTitle],
                          3: [self.stepFourNumber, self.stepFourTitle]}
+        appMainDir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
+        self.assetFolder = os.path.join(appMainDir, "Assets")
         self.sqlDatabase = backend.fileDatabase()
         self.nowExitAble = True
         self.numWorkers = max(1, cpu_count()-2)
@@ -387,6 +389,11 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
 
     def initGUI(self):
         """First boot, hanya opsi pertama yang muncul"""
+        self.setWindowIcon(
+            QIcon(
+                os.path.join(self.assetFolder, "icon.jpg")
+            )
+        )
         self.stackedWidget.setCurrentIndex(0)
         for key, pushButtonList in self.allPages.items():
             if key > 0:
