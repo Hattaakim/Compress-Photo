@@ -391,7 +391,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         """First boot, hanya opsi pertama yang muncul"""
         self.setWindowIcon(
             QIcon(
-                os.path.join(self.assetFolder, "icon.jpg")
+                os.path.join(self.assetFolder, "icon.png")
             )
         )
         self.stackedWidget.setCurrentIndex(0)
