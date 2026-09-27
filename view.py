@@ -385,7 +385,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         self.t4.timeout.connect(self.checkCompressProgress)
         self.t5.timeout.connect(self.updateTable)
         self.startCompression.clicked.connect(self.compressFotoParalell)
-        self.reloadVerifyTable.clicked.connect(self.updateVerifyTable)
+        self.reloadVerifyTable.clicked.connect(self.updateTable)
 
     def initGUI(self):
         """First boot, hanya opsi pertama yang muncul"""
