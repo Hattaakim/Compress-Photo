@@ -17,7 +17,7 @@ A Python and Qt6-based desktop application designed to simplify the process of c
 ### Binary Releases
 ![Download Ubuntu](https://img.shields.io/badge/download-Ubuntu%2026.04-brightgreen?logo=ubuntu&logoColor=white&style=for-the-badge) ![Download Windows](https://img.shields.io/badge/Download-Windows_10/11-blue?logo=windows&logoColor=white&style=for-the-badge)
 
-Releases available for Windows and Ubuntu/Debian-based Operating System. Check [Releases](https://github.com/Hattaakim/Compress-Photo/releases) for more information about the latest version. 
+Releases available for Windows and Ubuntu-based Operating System. Check [Releases](https://github.com/Hattaakim/Compress-Photo/releases) for more information about the latest version. 
 
 ### Note (For Binary Releases)
 This application is built using the Qt6 (PySide6) framework, so it requires the following minimum OS specification:
