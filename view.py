@@ -385,7 +385,7 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
         self.t4.timeout.connect(self.checkCompressProgress)
         self.t5.timeout.connect(self.updateTable)
         self.startCompression.clicked.connect(self.compressFotoParalell)
-        self.reloadVerifyTable.clicked.connect(self.updateTable)
+        self.refreshCompressTable.clicked.connect(self.updateTable)
 
     def initGUI(self):
         """First boot, hanya opsi pertama yang muncul"""
@@ -622,10 +622,6 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
             else:
                 for chooseAble in self.pageOneOpsi:
                     chooseAble.setEnabled(True)
-                for key, qtObjectList in self.pageOneInteractable.items():
-                    if key == 1:
-                        for qtObj in qtObjectList:
-                            qtObj.setEnabled(True)
                 self.stackedWidget.setCurrentIndex(0)
                 showInfo(self, "Kesalahan: Folder Kosong",
                          "Folder yang Anda pilih pada halaman sebelumnya merupakan folder kosong dan tidak mengandung file foto apapun. Silahkan verifikasi ulang sebelum lanjut menuju halaman verifikasi!", 'error')
@@ -638,6 +634,10 @@ class JendelaUtama(QMainWindow, Ui_MainWindow):
                             button.setDisabled(True)
                 self.pageOneLanjut.setEnabled(True)
                 self.firstPageGUI()
+                for key, qtObjectList in self.pageOneInteractable.items():
+                    if key == 1:
+                        for qtObj in qtObjectList:
+                            qtObj.setEnabled(True)
 
     def verifyFile(self):
         """Lakukan verifikasi secara async menggunakan multiprocessing pool"""
