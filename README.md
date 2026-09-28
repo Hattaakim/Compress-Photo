@@ -15,10 +15,36 @@ A Python and Qt6-based desktop application designed to simplify the process of c
 - Pillow Library ![Pillow](https://img.shields.io/badge/library-Pillow-3776AB?logo=python&logoColor=white)
 
 ### Binary Releases
-![Download Ubuntu/Debian](https://img.shields.io/badge/download-Ubuntu-brightgreen?logo=ubuntu&logoColor=white&style=for-the-badge) ![Download Debian](https://img.shields.io/badge/download-Debian-brightgreen?logo=debian&logoColor=white&style=for-the-badge) ![Download Windows](https://img.shields.io/badge/Download-Windows_10/11-blue?logo=windows&logoColor=white&style=for-the-badge)
+![Download Ubuntu](https://img.shields.io/badge/download-Ubuntu%2026.04-brightgreen?logo=ubuntu&logoColor=white&style=for-the-badge) ![Download Windows](https://img.shields.io/badge/Download-Windows_10/11-blue?logo=windows&logoColor=white&style=for-the-badge)
 
-### System Requirements for Binary Releases
-Releases available for Windows and Ubuntu/Debian-based Operating System. Check [Releases](https://github.com/Hattaakim/Compress-Photo/releases) for more information about the latest version.
-**Note:** This application is built using the Qt6 (PySide6) framework, so it requires the following minimum OS specification:
+Releases available for Windows and Ubuntu/Debian-based Operating System. Check [Releases](https://github.com/Hattaakim/Compress-Photo/releases) for more information about the latest version. 
+
+### Note (For Binary Releases)
+This application is built using the Qt6 (PySide6) framework, so it requires the following minimum OS specification:
 - **Windows:** Windows 10 (version 1809 or later) or Windows 11 (64-bit). Windows 7, 8, and 8.1 are not supported.
-- **Linux (Ubuntu/Debian):** Ubuntu 22.04 LTS (Jammy Jellyfish) or later, and Debian 12 (Bookworm) or later.
+- **Linux (Ubuntu Only):** Ubuntu 26.04 LTS (Resolute Racoon)
+
+## Installation & Usage
+
+### For Windows Users
+1. Download the latest `Installer.exe` file from the [Releases](https://github.com/Hattaakim/Compress-Photo/releases) page.
+2. Run the installer and follow the on-screen instructions.
+3. Open the application via the shortcut on your Desktop or Start Menu.
+
+### For Linux Users (AppImage)
+This application is distributed as a portable `.AppImage` file, so no special installation is required. This AppImage was compiled on Ubuntu 26.04. If you are using an older version of Linux (such as Ubuntu 24.04 or 22.04), the application may not run due to glibc version differences.
+
+**Usage via GUI:**
+1. Download the latest `.AppImage` file from the [Releases](https://github.com/Hattaakim/Compress-Photo/releases) page.
+2. Right-click the downloaded file > select **Properties**.
+3. Go to the **Permissions** tab, then check the box **"Allow executing file as program"**.
+4. Double-click the `.AppImage` file to launch the application.
+
+**Usage via Terminal:**
+Open a terminal in your downloads folder, then run the following commands:
+```bash
+# Grant execution permissions
+chmod +x app-file-name.AppImage
+
+# Run the application
+./app-file-name.AppImage
