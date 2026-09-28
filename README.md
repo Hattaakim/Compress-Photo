@@ -15,4 +15,10 @@ A Python and Qt6-based desktop application designed to simplify the process of c
 - Pillow Library ![Pillow](https://img.shields.io/badge/library-Pillow-3776AB?logo=python&logoColor=white)
 
 ### Binary Releases
+![Download Ubuntu/Debian](https://img.shields.io/badge/download-Ubuntu-brightgreen?logo=ubuntu&logoColor=white&style=for-the-badge) ![Download Debian](https://img.shields.io/badge/download-Debian-brightgreen?logo=debian&logoColor=white&style=for-the-badge) ![Download Windows](https://img.shields.io/badge/Download-Windows_10/11-blue?logo=windows&logoColor=white&style=for-the-badge)
+
+### System Requirements for Binary Releases
 Releases available for Windows and Ubuntu/Debian-based Operating System. Check [Releases](https://github.com/Hattaakim/Compress-Photo/releases) for more information about the latest version.
+**Note:** This application is built using the Qt6 (PySide6) framework, so it requires the following minimum OS specification:
+- **Windows:** Windows 10 (version 1809 or later) or Windows 11 (64-bit). Windows 7, 8, and 8.1 are not supported.
+- **Linux (Ubuntu/Debian):** Ubuntu 22.04 LTS (Jammy Jellyfish) or later, and Debian 12 (Bookworm) or later.
