@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'MainWindow2pViOmT.ui'
+## Form generated from reading UI file 'MainWindowvGYaod.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -132,6 +132,16 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.revealFile)
 
+        self.reloadTable = QToolButton(self.centralwidget)
+        self.reloadTable.setObjectName(u"reloadTable")
+        self.reloadTable.setMinimumSize(QSize(70, 80))
+        self.reloadTable.setMaximumSize(QSize(70, 80))
+        self.reloadTable.setStyleSheet(u"background-color:transparent")
+        self.reloadTable.setIconSize(QSize(40, 40))
+        self.reloadTable.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+
+        self.horizontalLayout.addWidget(self.reloadTable)
+
         self.horizontalSpacer = QSpacerItem(869, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout.addItem(self.horizontalSpacer)
@@ -215,6 +225,8 @@ class Ui_MainWindow(object):
 "Kompresi", None))
         self.revealFile.setText(QCoreApplication.translate("MainWindow", u"Tunjukkan\n"
 "File", None))
+        self.reloadTable.setText(QCoreApplication.translate("MainWindow", u"Refresh\n"
+"Tabel", None))
         self.menuPengaturan.setTitle(QCoreApplication.translate("MainWindow", u"Performa", None))
         self.menuJumlah_CPU_Digunakan.setTitle(QCoreApplication.translate("MainWindow", u"Jumlah CPU Digunakan", None))
         self.menuMulai_Otomatis.setTitle(QCoreApplication.translate("MainWindow", u"Mulai Otomatis", None))

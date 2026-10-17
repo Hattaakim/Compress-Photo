@@ -3,7 +3,7 @@ from PySide6.QtCore import QEvent, QModelIndex, QObject, QSize, QStandardPaths, 
 from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtSql import QSqlTableModel
-import sys, os, math, shiboken6, gc
+import sys, os, math, shiboken6, gc, subprocess
 from typing import Literal
 from multiprocessing import Pool, cpu_count, Queue, Pipe, Process
 
@@ -224,29 +224,42 @@ class DragnDropFilter(QObject):
                     return True
 
             elif event.type() == QEvent.Type.Drop:
-                #### Verifikasi file sudah ada
-                fileSqlQuery = "SELECT fileDir FROM fileJobTable"
-                hasil = self.sqlDb.selectQuery(querySQL=fileSqlQuery)
-                existsFile = {isi[0] for isi in hasil}
-                validExt = {".jpg", ".jpeg", ".png"}
-
+                bulkInsertData = []
                 if event.mimeData().hasUrls():
-                    for url in event.mimeData().urls():
-                        valA = url.toLocalFile()
-                        if self.filterType == 'File':
-                            if valA not in existsFile and os.path.isfile(valA):
-                                if os.path.splitext(valA)[1].lower() in validExt:
-                                    self.sqlDb.executeQuery(
-                                        querySQL="INSERT INTO newFileTable(fileName, fileDir, fileExt) VALUES (?,?,?)",
-                                        params=[os.path.basename(valA), os.path.normpath(valA), os.path.splitext(valA)[1].lower()]
-                                    )
+                    if self.filterType == 'File':
+                        for url in event.mimeData().urls():
+                            hasil = self.sqlDb.selectQuery(querySQL="SELECT fileDir from fileJobTable")
+                            existsFile = {file[0] for file in hasil}
+                            validExt = {".jpg", ".jpeg", ".png"}
 
-                        elif self.filterType == 'Folder':
+                            droppedFile = os.path.normpath(url.toLocalFile())
+                            fileExt = os.path.splitext(droppedFile)[1].lower()
+
+                            if droppedFile not in existsFile and fileExt in validExt and os.path.isfile(droppedFile):
+                                bulkInsertData.append((os.path.basename(droppedFile), droppedFile, fileExt))
+
+                        if bulkInsertData:
                             self.sqlDb.executeQuery(
-                                    querySQL="INSERT INTO newFolderTable(folderName, folderPath) VALUES (?,?)",
-                                    params=[os.path.basename(valA), os.path.normpath(valA)]
-                                )
+                                querySQL="INSERT INTO newFileTable(fileName, fileDir, fileExt) VALUES (?,?,?)",
+                                params=bulkInsertData, isMultipleParams=True
+                            )
 
+                    elif self.filterType == 'Folder':
+                        for url in event.mimeData().urls():
+                            hasil = self.sqlDb.selectQuery(querySQL="SELECT folderPath FROM newFolderTable")
+                            existsFolder = {folder[0] for folder in hasil}
+
+                            droppedFolder = os.path.normpath(url.toLocalFile())
+                            folderName = os.path.basename(droppedFolder)
+
+                            if droppedFolder not in existsFolder and os.path.isdir(droppedFolder):
+                                bulkInsertData.append((folderName, droppedFolder))
+
+                        if bulkInsertData:
+                            self.sqlDb.executeQuery(
+                                querySQL="INSERT INTO newFolderTable(folderName, folderPath) VALUES (?,?)",
+                                params=bulkInsertData, isMultipleParams=True
+                            )
                     self.model.select()
                     event.acceptProposedAction()
                     return True
@@ -305,7 +318,8 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                              self.startVerify: [':/hs_startVerify0', ':/hs_startVerify1'],
                              self.compressSettings: [':/hs_compressSettings0', ':/hs_compressSettings1'],
                              self.startCompress: [':/hs_startCompress0', ':/hs_startCompress1'],
-                             self.revealFile: [':/hs_revealFile0', ':/hs_revealFile1']}
+                             self.revealFile: [':/hs_revealFile0', ':/hs_revealFile1'],
+                             self.reloadTable: [':/hs_reloadTable0', ":/hs_reloadTable1"]}
         self.appIcon = ':/ai_appDefaultIcon'
         self.treeModelItem = {
             "Daftar Utama": ["Foto Baru", "Siap Diproses", "Selesai Diproses"],
@@ -321,17 +335,19 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.pageNavRoot = self.treeModel.invisibleRootItem()
 
         #### Global Const ####
+        self.currentTableModel = 0
+        self.currentRowClicked = None
         self.sqlDb = backend.fileDatabase()
 
         #### CONST For SQL Table Model ####
-        self.currentTableModel = 0
+        self._reloadTableStatus = 0
         self.allTableModel = {
             0: "fileJobTable", 1: "verifyFileTable", 2: "compressedFileTable"
         }
         self.sqlTableModel = QSqlTableModel(self, db=self.sqlDb.fileDatabase)
         self.sqlTableModel.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
         self.fotoBaruTableHeader = {"No.": 30, "Nama File": 90, "Lokasi File": 250, "Ekstensi File": 80}
-        self.verifyFileTableHeader = self.fotoBaruTableHeader | {"Format File": 80, "Dukungan File": 75, "Integritas File": 80, "File Aman": 70,"Ukuran Awal": 70}
+        self.verifyFileTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 80, "Integritas File": 85, "File Aman": 65,"Ukuran Awal": 85}
         self.compressedFileTableHeader = self.verifyFileTableHeader | {"Ukuran Akhir": 75, "Penghematan": 70, "Lokasi Simpan": 250, "Dihapus": 70}
 
         #### Const For Right Button In Each Page By currentTableModel([enabled], [disabled]) ####
@@ -345,9 +361,27 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         #### CONST For Modular Table Header ####
         self.allTableHeader = [self.fotoBaruTableHeader, self.verifyFileTableHeader, self.compressedFileTableHeader]
 
+        #### CONST FOR showInfo/bringQuestion Between different currentTableModel ####
+        self.msgDeleteSelectedRow = ("Anda yakin ingin menghapus file ini dari daftar file? File asli Anda tidak akan terhapus dan file ini akan masuk ke dalam daftar 'Batal Diproses'", 
+                                     "File ini telah diverifikasi dan siap untuk dikompresi. Anda tetap ingin menghapusnya?", 
+                                     "Anda ingin menghapus file hasil kompresi ini", 
+                                     "Foto ini telah ditolak sistem dan tidak dapat diproses lebih lanjut. Ingin menghapusnya dari daftar file? File asli Anda tidak akan terhapus.", 
+                                     "Anda yakin untuk menghapus permanen file ini dari daftar file? File asli Anda tidak akan terpengaruh.")
+
+        #### CONST FOR Verify File Async Process ####
+        self.numWorkers = max(1, cpu_count()-2)
+        self.pool = None
+        self.verifyFileIPC = Queue()
+        self.timerCheckVFIPC = QTimer(self)
+        self.timerUpdateVerifyTable = QTimer(self)
+        self._bufferVerifikasiFile = []
+        self.doneVerifyCount = 0
+        self.verifyFileCount = 0
+
         #### Init The Table ####
         self.universalTableView.setModel(self.sqlTableModel)
         self.universalTableView.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.universalTableView.verticalHeader().setVisible(False)
 
         #### Init the Window ####
         self.setWindowIcon(QIcon(self.appIcon))
@@ -368,10 +402,23 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
 
         #### INIT FIRST PAGE ####
         self.initFotoBaru()
+        self.changePageInit(0)
+
+        #### SIGNAL AND SLOT FOR startVerifyFile
+        self.timerUpdateVerifyTable.timeout.connect(self.forceUpdateTable)
+        self.timerCheckVFIPC.timeout.connect(self.checkQueueVerifyFile)
 
         #### SIGNAL AND SLOTS FOR TOP BAR PushButton ####
         self.addJob.clicked.connect(self.openAddJobWindow)
+        self.deleteSelected.clicked.connect(self.deleteSelectedRow)
+        self.revealFile.clicked.connect(self.revealFileOnFE)
+        self.reloadTable.clicked.connect(self.forceUpdateTable)
+        self.startVerify.clicked.connect(self.startVerifyFile)
 
+        #### SIGNAL & SLOTS FOR UNIVERSALTABLEVIEW ####
+        self.universalTableView.clicked.connect(self.universalTableRowClicked)
+
+    ##### LOVELY INIT CODE - SUPAYA WINDOWNYA SIAP #####
     def initTreePageNavigator(self):
         """prepare page navigator berbentuk tree view"""
         for (ortu, anakanak), (ikonOrtu, ikonAnakAnak) in zip(
@@ -393,9 +440,12 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             key.setIconSize(QSize(30,30))
 
     def changePageInit(self, page:Literal[0,1,2]):
-        """Make this boring changing page task being modular"""
+        """Make this boring changing page task being modular, and also clear everything from behind"""
         self.currentTableModel = page
+        self.universalTableView.setModel(None)
+        self.sqlTableModel.clear()
         self.sqlTableModel.setTable(self.allTableModel[self.currentTableModel])
+        self.universalTableView.setModel(self.sqlTableModel)
 
         for i, (header, colWidth) in enumerate(self.allTableHeader[self.currentTableModel].items()):
             self.sqlTableModel.setHeaderData(i, Qt.Orientation.Horizontal, header)
@@ -410,16 +460,34 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         """Initialisasi tabel dan tombol untuk halaman Foto Baru"""
         firstItemIndex = self.treeModel.index(0,0)
         self.pageNavigator.expand(firstItemIndex)
-        self.sqlTableModel.select()
         self.changePageInit(0)
+        self.forceUpdateTable()
         
-        delegateTableJustifyAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignJustify, self.universalTableView)
+        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self.universalTableView)
         delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self.universalTableView)
         for i in range(0, 2):
             self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
-        for i in range(2,4):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableJustifyAlign)
+        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+        self.universalTableView.setItemDelegateForColumn(3, delegateTableCenterAlign)
 
+    def universalTableRowClicked(self, index):
+        """Respons ketika pengguna menekan pada row spesifik"""
+        self.currentRowClicked = index.row()
+    
+    def forceUpdateTable(self):
+        """Paksa update SQLTable apapun yang sedang online"""
+        hasil = self.sqlTableModel.select()
+        if hasil == True:
+            self.reloadTable.setText("Reload Tabel\nSukses")
+        else:
+            self.reloadTable.setText("Reload Tabel\nGagal")
+        QTimer.singleShot(1000, self.forceUpdateTableStatusReset)
+
+    def forceUpdateTableStatusReset(self):
+        """reset status reload tabel jadi nama tombol itu lagi"""
+        self.reloadTable.setText("Refresh\nTabel")
+
+    ##### TOMBOL PERTAMA - QToolButton::addJobWindow #####
     def openAddJobWindow(self):
         """Membuka jendela Add Job Window dan menambahkan trigger doneAction"""
         _w = WM_.openWindow(PilihFileAtauFolder, self.sqlDb)
@@ -427,6 +495,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         _w.doneAction.connect(self.closeAddJobWindow)
 
     def closeAddJobWindow(self):
+        """Trigger doneActionnya untuk memindahkan data dan reset table seamlessly"""
         self.sqlDb.executeQuery(
             querySQL="INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM newFileTable"
         )
@@ -437,6 +506,123 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.sqlDb.executeQuery(
             querySQL="DELETE FROM newFileTable"
         )
+
+    ##### TOMBOL KEDUA - QToolButton::deleteSelected #####
+    def deleteSelectedRow(self):
+        """Saat pengguna menekan row dan memencet delete"""
+        if self.currentRowClicked != None:
+            jawaban = bringQuestion(self, "Konfirmasi", self.msgDeleteSelectedRow[self.currentTableModel],
+                                    'question', 'yes', 'no')
+            if jawaban == QMessageBox.Yes:
+                self.sqlTableModel.removeRow(self.currentRowClicked)
+                self.sqlTableModel.submitAll()
+
+            self.currentRowClicked = None
+            self.universalTableView.clearSelection()
+            self.universalTableView.clearFocus()
+            self.sqlTableModel.select()
+
+    ##### TOMBOL KEEMPAT - QToolButton::startVerify #####
+    def initVerifyPage(self):
+        self.changePageInit(1)
+        self.forceUpdateTable()
+        
+        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self)
+        delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
+        delegateFileSize = FileSizeTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
+        delegateTableInterpret = InterpretTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
+
+        for i in range(0,2):
+            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+        for i in range(3,5):
+            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+        for i in range(5,8):
+            self.universalTableView.setItemDelegateForColumn(i, delegateTableInterpret)
+        self.universalTableView.setItemDelegateForColumn(8, delegateFileSize)
+
+    def startVerifyFile(self):
+        """Mulai proses verifikasi file secara asinkron"""
+        if self.currentTableModel == 0:
+            self.sqlDb.executeQuery(
+                querySQL="INSERT INTO verifyFileTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM fileJobTable"
+            )
+            self.sqlDb.executeQuery(
+                querySQL="DELETE FROM fileJobTable"
+            )
+            hasil = self.sqlDb.selectQuery(
+                querySQL="SELECT fileDir FROM verifyFileTable"
+            )
+            allFileToProcess = [file[0] for file in hasil
+                                if os.path.isfile(file[0])]
+            if len(allFileToProcess) > 0:
+                self.initVerifyPage()
+                self.verifyFileCount = len(allFileToProcess)
+                self.pool = Pool(processes=self.numWorkers)
+                for file in allFileToProcess:
+                    self.pool.apply_async(backend.verifyImageFile,
+                                        args=(file,), callback=self.verifyFileIPC.put)
+                self.timerCheckVFIPC.start(100)
+                self.timerUpdateVerifyTable.start(500)
+
+            else:
+                showInfo(self, "Oops.. Ada Yang Tidak Beres",
+                         "Tidak ada file baru yang harus diverifikasi!", 'info')
+
+    def checkQueueVerifyFile(self):
+        while not self.verifyFileIPC.empty():
+            hasil = self.verifyFileIPC.get()
+            self._bufferVerifikasiFile.append(hasil)
+            self.doneVerifyCount += 1
+            if len(self._bufferVerifikasiFile) >= 5:
+                self.sqlDb.executeQuery(
+                    querySQL="UPDATE verifyFileTable SET fileExt = ?, fileFormat = ?, isSupported = ?, isNotCorrupted = ?, isNotVirus = ?, fileSize0 = ? WHERE fileName = ?",
+                    params=self._bufferVerifikasiFile, isMultipleParams=True
+                )
+                self._bufferVerifikasiFile.clear()
+
+            self.startVerify.setText(f"Memproses:\n{self.doneVerifyCount}/{self.verifyFileCount} File")
+            
+            if self.doneVerifyCount == self.verifyFileCount:
+                if len(self._bufferVerifikasiFile) > 0:
+                    self.sqlDb.executeQuery(
+                    querySQL="UPDATE verifyFileTable SET fileExt = ?, fileFormat = ?, isSupported = ?, isNotCorrupted = ?, isNotVirus = ?, fileSize0 = ? WHERE fileName = ?",
+                    params=self._bufferVerifikasiFile, isMultipleParams=True
+                    )
+                    self._bufferVerifikasiFile.clear()
+                self.timerCheckVFIPC.stop()
+                self.timerUpdateVerifyTable.stop()
+                self.startVerify.setText("Verifikasi\nFile")
+
+    ##### TOMBOL KETUJUH - QToolButton::revealFile #####
+    def revealFileOnFE(self):
+        """Saat pengguna menekan row dan memencet reveal file 
+        'JADI GWEJ LUPA FILE APA SIH YANG GWEH MASUKIN?'"""
+        if self.currentRowClicked != None:
+            currentRowRecord = self.sqlTableModel.record(self.currentRowClicked)
+            fileDir = currentRowRecord.value("fileDir")
+            if not os.path.isfile(fileDir):
+                showInfo(self, "Terjadi Kesalahan",
+                         f"Ooops! file yang kamu pilih:[{fileDir}] tidak ada eksistensinya. Kami membantu Anda menyelesaikannya dengan menghapusnya dari list.",
+                         'error')
+                self.sqlTableModel.removeRow(self.currentRowClicked)
+                self.sqlTableModel.submitAll()
+
+            else:
+                if sys.platform == "win32":
+                    subprocess.run(["explorer", "/select,", f"{fileDir}"])
+
+                else:
+                    try:
+                        subprocess.run(["xdg-open", os.path.dirname(fileDir)])
+
+                    except Exception:
+                        showInfo(self, "Oops... Ada Yang Tidak Beres",
+                                 f"100% BUKAN kesalahan Anda... Tetapi sepertinya platform Anda/API belum mendukung hal ini. Catat detail ini dan hubungi pengembang:\nCommand: 'xdg-open' status FAILED\nOS: 'Unknown' defined as '{sys.platform}'",
+                                 'error')
+            self.currentRowClicked = None
+            self.universalTableView.clearSelection()
+            self.universalTableView.clearFocus()
 
 class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
     """Is accessible from page 0 only"""
@@ -506,23 +692,25 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         self.initButton()
         self.initTableView()
 
-        #### Signal & Slots ####
-        self.folderOption.clicked.connect(self.folderOptionTriggered)
-        self.fileOption.clicked.connect(self.fileOptionTriggered)
+        #### SIGNAL & SLOTS FOR PHOTO OPTION ####
         self.photoTableView.clicked.connect(self.photoTableRowClicked)
-        self.folderTableView.clicked.connect(self.folderTableRowClicked)
-
+        self.fileOption.clicked.connect(self.fileOptionTriggered)
         self.newPhotoFile.clicked.connect(self.chooseFileFoto)
         self.deletePhotoFile.clicked.connect(self.deletePhoto)
         self.resetPhotoTable.clicked.connect(self.functResetPhotoTabel)
 
+        #### SIGNAL & SLOTS FOR FOLDER OPTION ####
+        self.folderTableView.clicked.connect(self.folderTableRowClicked)
+        self.folderOption.clicked.connect(self.folderOptionTriggered)
         self.newFolder.clicked.connect(self.chooseFolder)
         self.deleteFolder.clicked.connect(self.functDeleteFolder)
         self.resetFolderTable.clicked.connect(self.functResetFolderTable)
 
+        #### SIGNAL & SLOTS FOR SECONDARY THREAD, ANIMATION, CLOSE AND SAVE BUTTON ####
         self.fetchFileMPTimer.timeout.connect(self.processFileQueue)
         self.saveCloseTimerAnimation.timeout.connect(self.simpanDanTutupAnim)
         self.simpanDanTutup.clicked.connect(self.functSimpanDanTutup)
+        self.batal.clicked.connect(self.tutupJendela)
 
     def initTableView(self):
         """Persiapkan table view dengan menyetel beberapa hal dan memastikan tabel dalam posisi off"""
@@ -657,11 +845,10 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
 
     def chooseFolder(self):
         """Respons ketika pengguna menekan tombol newFolder"""
-        hasil = self.sqlDb.selectQuery(
-            querySQL="SELECT folderPath FROM newFolderTable"
-        )
+        hasil = self.sqlDb.selectQuery(querySQL="SELECT folderPath FROM newFolderTable")
         folderSudahAda = {folder[0] for folder in hasil}
         userChoosedFolder = chooseFolder(self, judul="Pilih Folder Foto")
+
         if userChoosedFolder:
             userChoosedFolderNormPath = os.path.normpath(userChoosedFolder)
             if userChoosedFolderNormPath not in folderSudahAda and os.path.isdir(userChoosedFolderNormPath):
@@ -714,11 +901,11 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         self.simpanDanTutup.setDisabled(True)
 
         if self.folderTableModel.rowCount() > 0:
-            self.saveCloseTimerAnimation.start(500)
+            self.saveCloseTimerAnimation.start(250)
             hasil = self.sqlDb.selectQuery(
                 querySQL="SELECT folderPath FROM newFolderTable"
             )
-            allNeedToProcess = [file[0] for (file) in hasil]
+            allNeedToProcess = backend.filterRedundantPath([file[0] for (file) in hasil])
             self.fetchFileMP = Process(
                 target=backend.returnAllFileFromPath,
                 args=(allNeedToProcess, self.cConn)
@@ -732,11 +919,11 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         else:
             showInfo(self, "Tidak Ada Data Baru!", "Anda tidak memasukkan data baru apapun!",
                     'info')
+            WM_.closeWindows(PilihFileAtauFolder)
 
     def processFileQueue(self):
         """Proses Queue yang datang dari subprocess independen"""
         if self.pConn.poll():
-            ### allFiles from here was already normpath
             allFiles = self.pConn.recv() 
             self.fetchFileMPTimer.stop()
 
@@ -763,7 +950,7 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
                 
                 if dataToInsert:
                     self.sqlDb.executeQuery(
-                        querySQL="INSERT INTO newFileTable(fileName, fileDir, fileExt)",
+                        querySQL="INSERT INTO newFileTable(fileName, fileDir, fileExt) VALUES (?,?,?)",
                         params=dataToInsert, isMultipleParams=True
                     )
             self.closeWindowEmitSignal()
@@ -776,11 +963,23 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
 
     def simpanDanTutupAnim(self):
         """Animasi tombol '...' '..' '.' cepat"""
-        self.simpanDanTutup.setText("."*self.countPoint)
+        self.simpanDanTutup.setText("Memuat" + "."*self.countPoint)
         if self.countPoint <= 3:
             self.countPoint += 1
         else:
             self.countPoint = 1
+
+    def tutupJendela(self):
+        """Fungsi resmi WindowManager Instance untuk menutup jendela"""
+        jawaban = bringQuestion(self, "Konfirmasi Untuk Keluar", "Apakah Anda yakin untuk keluar dari jendela ini? Segala data yang tidak tersimpan akan hilang!",
+                                'question', 'yes', 'no')
+        if jawaban == QMessageBox.Yes:
+            WM_.closeWindow(PilihFileAtauFolder)
+
+    def closeEvent(self, event):
+        """Cegah penutupan aplikasi tanpa WindowManager Instance"""
+        event.ignore()
+        self.tutupJendela()
 
 ######### Window Class GUI #########
 class JendelaUtama(QMainWindow, MainWindow.Ui_MainWindow):
@@ -835,7 +1034,7 @@ class JendelaUtama(QMainWindow, MainWindow.Ui_MainWindow):
         self.fileTableModel.select()
 
         self.currentRowClicked = None
-        self.tableDropFilter = DropFilter(self.fileTable, self.fileTableModel, self.sqlDatabase, self.fileTable)
+        self.tableDropFilter = NotImplemented
         self.fileTable.installEventFilter(self.tableDropFilter)
 
         ######## Signal & Slots Halaman Pertama ########

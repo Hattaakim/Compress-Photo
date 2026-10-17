@@ -27,13 +27,6 @@ id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt T
 isNotCorrupted INTEGER NOT NULL, isNotVirus INTEGER NOT NULL, fileSize0 FLOAT NOT NULL, fileSize1 FLOAT DEFAULT 0.00, sizeReduced FLOAT DEFAULT 0.00,
 savePath TEXT DEFAULT '-', isDeleted INTEGER DEFAULT 0)""",
 
-"""CREATE TRIGGER IF NOT EXISTS onFileJobInserted
-AFTER INSERT ON fileJobTable
-BEGIN
-    INSERT INTO verifyFileTable(fileName, fileDir, fileExt)
-    VALUES (NEW.fileName, NEW.fileDir, NEW.fileExt);
-END;""",
-
 """CREATE TRIGGER IF NOT EXISTS verifyFile_isUpdated
 AFTER UPDATE OF fileFormat on verifyFileTable
 FOR EACH ROW
@@ -146,7 +139,7 @@ def verifyImageFile(filePath):
     if imgPtr:
         imgPtr.close()
         del imgPtr
-    return (ekstensiFile, formatFile, ukuranAwal, dukunganFile, tidakCorrupt, bukanVirus, namaFile)
+    return (ekstensiFile, formatFile, dukunganFile, tidakCorrupt, bukanVirus, ukuranAwal, namaFile)
 
 def returnAllFileFromPath(dirs:list, conn):
     """Return a list of file from a dir, also verify is file exists and file in valid image extension"""
@@ -164,6 +157,7 @@ def returnAllFileFromPath(dirs:list, conn):
     conn.close()
 
 def onFirstRun():
+    """Fungsi untuk mendeteksi/menciptakan file config saat aplikasi baru berjalan"""
     defaultConfig = {
         "appSettings" : {"threadUsage": 0, "threadUsageUserDefinied": 0, "isAutoStartup": 0}
     }
@@ -174,3 +168,19 @@ def onFirstRun():
         json.dump(defaultConfig, fPtr)
         fPtr.close()
     pass
+
+def filterRedundantPath(listOfPath):
+    """Untuk menyortir sebuah list of path yang kusut menjadi terstruktur agar tidak menghabiskan waktu CPU untuk walk ke path kusut"""
+    uniquePath = {os.path.normpath(path) for path in listOfPath}
+    sortedPath = sorted(uniquePath)
+    finalPath = []
+
+    for path in sortedPath:
+        isRedundant = False
+        for parent in finalPath:
+            if parent.startswith(parent + os.sep):
+                isRedundant = True
+                break
+        if not isRedundant:
+            finalPath.append(path)
+    return finalPath

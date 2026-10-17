@@ -27,6 +27,8 @@
         <file alias="hs_startCompress1">i/hs/startCompress1.png</file>
         <file alias="hs_startVerify0">i/hs/startVerify0.png</file>
         <file alias="hs_startVerify1">i/hs/startVerify1.png</file>
+        <file alias="hs_reloadTable0">i/hs/reloadTable0.png</file>
+        <file alias="hs_reloadTable1">i/hs/reloadTable1.png</file>
 
         <!-- (tvp) TREE VIEW NAVIGATE ICON-->
         <file alias="tvp_daftarUtama">i/tvp/daftarUtama.png</file>
