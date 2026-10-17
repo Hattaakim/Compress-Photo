@@ -1,0 +1,7 @@
+{
+    "appSettings" : {
+        "threadUsage": 0,
+        "threadUsageUserDefinied": 0,
+        "isAutoStartup": 0
+    }
+}

@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>910</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QToolButton" name="addJob">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Tambah File
+atau Foto</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="deleteSelected">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Hapus File
+Terpilih</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="cancelDeleteSelected">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Batal Hapus
+File Terpilih</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="startVerify">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Verifikasi
+File</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="startCompress">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Mulai
+Kompresi</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="compressSettings">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Pengaturan
+Kompresi</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="Line" name="line_2">
+        <property name="orientation">
+         <enum>Qt::Orientation::Vertical</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="revealFile">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Tunjukkan
+File</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>869</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QTreeView" name="pageNavigator">
+        <property name="maximumSize">
+         <size>
+          <width>180</width>
+          <height>16777215</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTableView" name="universalTableView"/>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>910</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuPengaturan">
+    <property name="title">
+     <string>Performa</string>
+    </property>
+    <widget class="QMenu" name="menuJumlah_CPU_Digunakan">
+     <property name="title">
+      <string>Jumlah CPU Digunakan</string>
+     </property>
+     <addaction name="actionDiatur_Otomatis"/>
+     <addaction name="actionDitentukan_Pengguna"/>
+    </widget>
+    <widget class="QMenu" name="menuMulai_Otomatis">
+     <property name="title">
+      <string>Mulai Otomatis</string>
+     </property>
+     <addaction name="actionJalankan_Aplikasi_Saat_Perangkat_Dimulai"/>
+     <addaction name="actionTidak_Ditentukan"/>
+    </widget>
+    <addaction name="menuJumlah_CPU_Digunakan"/>
+    <addaction name="separator"/>
+    <addaction name="menuMulai_Otomatis"/>
+   </widget>
+   <widget class="QMenu" name="menuTentang">
+    <property name="title">
+     <string>Informasi Lainnya</string>
+    </property>
+    <widget class="QMenu" name="menuDibuat_oleh_Hattaakim">
+     <property name="title">
+      <string>Dibuat oleh @Hattaakim</string>
+     </property>
+     <addaction name="actionHalaman_Github"/>
+     <addaction name="actionHalaman_Instagram"/>
+     <addaction name="actionHubungi_Developer_Email"/>
+    </widget>
+    <addaction name="actionTentang_Aplikasi"/>
+    <addaction name="menuDibuat_oleh_Hattaakim"/>
+   </widget>
+   <addaction name="menuPengaturan"/>
+   <addaction name="menuTentang"/>
+  </widget>
+  <action name="actionDiatur_Otomatis">
+   <property name="text">
+    <string>Ditentukan Otomatis</string>
+   </property>
+  </action>
+  <action name="actionDitentukan_Pengguna">
+   <property name="text">
+    <string>Ditentukan Pengguna</string>
+   </property>
+  </action>
+  <action name="actionJalankan_Aplikasi_Saat_Perangkat_Dimulai">
+   <property name="text">
+    <string>Jalankan Aplikasi Saat Perangkat Dimulai</string>
+   </property>
+  </action>
+  <action name="actionTidak_Ditentukan">
+   <property name="text">
+    <string>Tidak Ditentukan</string>
+   </property>
+  </action>
+  <action name="actionTentang_Aplikasi">
+   <property name="text">
+    <string>Tentang Aplikasi</string>
+   </property>
+  </action>
+  <action name="actionHalaman_Github">
+   <property name="text">
+    <string>Halaman Github</string>
+   </property>
+  </action>
+  <action name="actionHalaman_Instagram">
+   <property name="text">
+    <string>Halaman Instagram</string>
+   </property>
+  </action>
+  <action name="actionHubungi_Developer_Email">
+   <property name="text">
+    <string>Hubungi Developer (Email)</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

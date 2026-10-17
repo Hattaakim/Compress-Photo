@@ -1,0 +1,40 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <!-- Set Icon: Call Prefix and Num (0 = Border, 1 = full grad)-->
+        <!-- Example: self.button.setIcon(QIcon(":/newFile0"))-->
+        <!-- To Compile this File, insert command: [pyside6-rcc resources.qrc -o resources.py]-->
+        <!-- (nf) ADD FILE WINDOW ICON -->
+        <file alias="nf_newFileFolder">i/nf/addNewFileFolder.png</file>
+        <file alias="nf_deleteSelected">i/nf/deleteSelected.png</file>
+        <file alias="nf_resetTable">i/nf/resetTable.png</file>
+
+        <!-- (ai) APPLICATION ICON-->
+        <file alias="ai_appDefaultIcon">i/ai/appDefaultIcon.png</file>
+
+        <!-- (hs) HOME SCREEN ICON -->
+        <file alias="hs_addJobIcon0">i/hs/addJobIcon0.png</file>
+        <file alias="hs_addJobIcon1">i/hs/addJobIcon1.png</file>
+        <file alias="hs_cancelDeleteSelected0">i/hs/cancelDeleteSelected0.png</file>
+        <file alias="hs_cancelDeleteSelected1">i/hs/cancelDeleteSelected1.png</file>
+        <file alias="hs_compressSettings0">i/hs/compressSettings0.png</file>
+        <file alias="hs_compressSettings1">i/hs/compressSettings1.png</file>
+        <file alias="hs_deleteSelected0">i/hs/deleteSelected0.png</file>
+        <file alias="hs_deleteSelected1">i/hs/deleteSelected1.png</file>
+        <file alias="hs_revealFile0">i/hs/revealFile0.png</file>
+        <file alias="hs_revealFile1">i/hs/revealFile1.png</file>
+        <file alias="hs_startCompress0">i/hs/startCompress0.png</file>
+        <file alias="hs_startCompress1">i/hs/startCompress1.png</file>
+        <file alias="hs_startVerify0">i/hs/startVerify0.png</file>
+        <file alias="hs_startVerify1">i/hs/startVerify1.png</file>
+
+        <!-- (tvp) TREE VIEW NAVIGATE ICON-->
+        <file alias="tvp_daftarUtama">i/tvp/daftarUtama.png</file>
+        <file alias="tvp_fotoBaru">i/tvp/fotoBaru.png</file>
+        <file alias="tvp_siapDiproses">i/tvp/siapDiproses.png</file>
+        <file alias="tvp_selesaiDiproses">i/tvp/selesaiDiproses.png</file>
+        <file alias="tvp_daftarTerhapus">i/tvp/daftarTerhapus.png</file>
+        <file alias="tvp_fotoDitolak">i/tvp/fotoDitolak.png</file>
+        <file alias="tvp_batalDiproses">i/tvp/batalDiproses.png</file>
+    </qresource>
+</RCC>
