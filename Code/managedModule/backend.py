@@ -10,35 +10,29 @@ class fileDatabase:
 
         self.dbQuery = QSqlQuery(db=self.fileDatabase)
         self.qCreateTable = [
-############################ ADA YANG SALAH NJIR NJIR BUKAN SEG-FAULT TAPI.... BIKIN SAKIT HATI
-############################ BESOK PAS MATA UDAH MELEK, DICEK LAGI YA GAUSAH BURU BURU 
-############################ HUFFFFF CAPEK KODING, TAPI ASIK SIH?! CAPEK TAPI 
-"""CREATE TABLE IF NOT EXISTS newFileTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL)""",
+"""CREATE TABLE IF NOT EXISTS newFileTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, 
+fileDir TEXT NOT NULL, fileExt TEXT NOT NULL)""",
 
 """CREATE TABLE IF NOT EXISTS newFolderTable(id INTEGER PRIMARY KEY, folderName TEXT NOT NULL, folderPath TEXT NOT NULL)""",
 
-"""CREATE TABLE IF NOT EXISTS fileJobTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL)""",
+"""CREATE TABLE IF NOT EXISTS fileJobTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, 
+fileDir TEXT NOT NULL, fileExt TEXT NOT NULL)""",
 
-"""CREATE TABLE IF NOT EXISTS verifyFileTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL,
-fileFormat TEXT DEFAULT '-', isSupported INTEGER DEFAULT 0, isNotCorrupted INTEGER DEFAULT 0, isNotVirus INTEGER DEFAULT 0, fileSize0 FLOAT DEFAULT 0.00)""",
+"""CREATE TABLE IF NOT EXISTS verifyFileTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, 
+fileExt TEXT NOT NULL, fileFormat TEXT DEFAULT '-', isSupported INTEGER DEFAULT 0, isNotCorrupted INTEGER DEFAULT 0, 
+isNotVirus INTEGER DEFAULT 0, fileSize0 FLOAT DEFAULT 0.00)""",
 
 """CREATE TABLE IF NOT EXISTS compressedFileTable(
-id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL, fileFormat TEXT NOT NULL, isSupported INTEGER NOT NULL,
-isNotCorrupted INTEGER NOT NULL, isNotVirus INTEGER NOT NULL, fileSize0 FLOAT NOT NULL, fileSize1 FLOAT DEFAULT 0.00, sizeReduced FLOAT DEFAULT 0.00,
-savePath TEXT DEFAULT '-', isDeleted INTEGER DEFAULT 0)""",
+id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL, fileFormat TEXT NOT NULL, 
+isSupported INTEGER NOT NULL, isNotCorrupted INTEGER NOT NULL, isNotVirus INTEGER NOT NULL, fileSize0 FLOAT NOT NULL, 
+fileSize1 FLOAT DEFAULT 0.00, sizeReduced FLOAT DEFAULT 0.00, savePath TEXT DEFAULT '-', isDeleted INTEGER DEFAULT 0)""",
 
-"""CREATE TRIGGER IF NOT EXISTS verifyFile_isUpdated
-AFTER UPDATE OF fileFormat on verifyFileTable
-FOR EACH ROW
-BEGIN
-    UPDATE compressedFileTable
-    SET fileFormat = NEW.fileFormat,
-        isSupported = NEW.isSupported,
-        isNotCorrupted = NEW.isNotCorrupted,
-        isNotVirus = NEW.isNotVirus,
-        fileSize0 = NEW.fileSize0
-    WHERE fileName = NEW.fileName;
-END;"""
+"""CREATE TABLE IF NOT EXISTS photoRejectedTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, 
+fileDir TEXT NOT NULL, fileExt TEXT NOT NULL, fileFormat TEXT NOT NULL, isSupported INTEGER NOT NULL,
+isNotCorrupted INTEGER NOT NULL, isNotVirus INTEGER NOT NULL, dateRejected TEXT DEFAULT '~')""",
+
+"""CREATE TABLE IF NOT EXISTS photoCancelledTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, 
+fileExt TEXT NOT NULL, dateDeleted TEXT DEFAULT '~')"""
         ]
         for qSql in self.qCreateTable:
             self.dbQuery.exec(qSql)
