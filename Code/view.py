@@ -16,7 +16,7 @@ from managedModule import backend, compressModule
 from assets import resources #### PENTINGGGGGG RESOURCE REMAKE
 
 ######### Window ##########
-from windowModule import MainWindow, selectNewFile
+from windowModule import MainWindow, selectNewFile, PerfSettingCPUPerf
 
 ######### Global Const #########
 APPID = "Compress Foto@hattaakim"
@@ -314,6 +314,46 @@ class WindowManager:
             gc.collect()
 
 ######## Window Class GUI #########
+class CPUSettings(QMainWindow, PerfSettingCPUPerf.Ui_MainWindow):
+    doneAction = Signal()
+    def __init__(self, uPInstancePassThrought:backend.UserPersonalization):
+        super().__init__()
+        self.setupUi(self)
+        self.setWindowTitle("Pengaturan CPU")
+
+        #### CONST for User Personalization Instance
+        self.userPersonalization = uPInstancePassThrought
+
+        #### CONST - User Device Performance ####
+        self.maxCore = cpu_count()
+
+        self.initScrollBar()
+
+        #### Signal and Slots
+        self.cpuCoreSlider.valueChanged.connect(self.sliderValueChanged)
+
+    def initScrollBar(self):
+        self.cpuCoreSlider.setMaximum(self.maxCore)
+
+    def sliderValueChanged(self, val):
+        summaryItem = []
+        finalText = "Ringkasan:\n"
+        if val < self.maxCore:
+            summaryItem.append(f"Sebanyak {val}/{self.maxCore} CPU akan digunakan aplikasi")
+        elif val >= self.maxCore:
+            summaryItem.append("Pengaturan tidak valid terdeteksi!")
+
+        if val < self.maxCore//2:
+            summaryItem.append("Performa aplikasi mungkin menurun akibat sedikitnya core yang digunakan")
+
+        elif self.maxCore - val < 2:
+            summaryItem.append("Perangkat Anda membutuhkan minimal 2 core untuk beroperasi dengan stabil.")
+            summaryItem.append("Stabilitas perangkat mungkin terganggu akibat core sisa dibawah yang dibutuhkan")
+
+        for i, sumText in enumerate(summaryItem, start=1):
+            finalText = finalText + f"{i}. {sumText}\n"
+        self.settingsSuggestion.setText(finalText)
+
 class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
     def __init__(self):
         """Initialize the Window as QMainWindow"""
@@ -346,6 +386,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.currentTableModel = 0
         self.currentRowClicked = None
         self.sqlDb = backend.fileDatabase()
+        self.userPersonalization = backend.UserPersonalization()
 
         #### CONST For SQL Table Model ####
         self._reloadTableStatus = 0
@@ -398,30 +439,31 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.verifyFileCount = 0
         self.verifyFileThreadStatus = 0
 
-        #### Init The Table ####
+        #### CONST The Table ####
         self.universalTableView.setModel(self.sqlTableModel)
         self.universalTableView.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.universalTableView.verticalHeader().setVisible(False)
 
-        #### Init the Window ####
+        #### CONST the Window ####
         self.setWindowIcon(QIcon(self.appIcon))
         self.setWindowTitle("Kompresi Gambar")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        #### Init SaberPushButton ####
+        #### CONST SaberPushButton ####
         self.saberButtonFiler = SaberButtonFilter(self.saberPButton, self)
-        self.initSaberPushButton()
 
-        #### Init Tree Page Navigator ####
+        #### CONST Tree Page Navigator ####
         self.pageNavigator.setModel(self.treeModel)
         self.pageNavigator.setExpandsOnDoubleClick(True)
         self.pageNavigator.setItemsExpandable(True)
         self.pageNavigator.setHeaderHidden(True)
         self.pageNavigator.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
-        self.initTreePageNavigator()
 
-        #### INIT FIRST PAGE ####
+        #### INIT FIRST START ####
+        self.initSaberPushButton()
+        self.initTreePageNavigator()
         self.changePage("Foto Baru", 0)
+        self.initUserSettings()
 
         #### SIGNAL AND SLOT for Page Navigator ####
         self.pageNavigator.clicked.connect(self.pageNavigatorClicked)
@@ -454,6 +496,20 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                 anakOrtu = QStandardItem(anak)
                 anakOrtu.setIcon(QIcon(ikonAnak))
                 headTree.appendRow([anakOrtu])
+
+    def initUserSettings(self):
+        """Prepare pengaturan pengguna"""
+        userThreadPref = self.userPersonalization.getUserConfig("perfSettings",0)
+        if userThreadPref == 0:
+            self.cpuThreadAuto.setChecked(True)
+        else:
+            self.cpuThreadUserSet.setChecked(True)
+
+        autoStart = self.userPersonalization.getUserConfig("autoStart", 0)
+        if autoStart == 0:
+            self.autoStartOff.setChecked(True)
+        else:
+            self.autoStartOn.setChecked(True)
     
     def initSaberPushButton(self):
         """prepare tombol supaya bisa menyala saat dihover"""
@@ -1833,6 +1889,7 @@ if __name__ == "__main__":
 
     else:
         WM_ = WindowManager()
-        firstPage = WM_.openWindow(wClass=HomeScreen)
+        uPs = backend.UserPersonalization()
+        firstPage = WM_.openWindow(CPUSettings, uPs)
         firstPage.show()
         app.exec()
