@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'MainWindowvGYaod.ui'
+## Form generated from reading UI file 'MainWindowJVwvfv.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -26,14 +26,18 @@ class Ui_MainWindow(object):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(910, 600)
-        self.actionDiatur_Otomatis = QAction(MainWindow)
-        self.actionDiatur_Otomatis.setObjectName(u"actionDiatur_Otomatis")
-        self.actionDitentukan_Pengguna = QAction(MainWindow)
-        self.actionDitentukan_Pengguna.setObjectName(u"actionDitentukan_Pengguna")
-        self.actionJalankan_Aplikasi_Saat_Perangkat_Dimulai = QAction(MainWindow)
-        self.actionJalankan_Aplikasi_Saat_Perangkat_Dimulai.setObjectName(u"actionJalankan_Aplikasi_Saat_Perangkat_Dimulai")
-        self.actionTidak_Ditentukan = QAction(MainWindow)
-        self.actionTidak_Ditentukan.setObjectName(u"actionTidak_Ditentukan")
+        self.cpuThreadAuto = QAction(MainWindow)
+        self.cpuThreadAuto.setObjectName(u"cpuThreadAuto")
+        self.cpuThreadAuto.setCheckable(True)
+        self.cpuThreadUserSet = QAction(MainWindow)
+        self.cpuThreadUserSet.setObjectName(u"cpuThreadUserSet")
+        self.cpuThreadUserSet.setCheckable(True)
+        self.autoStartOn = QAction(MainWindow)
+        self.autoStartOn.setObjectName(u"autoStartOn")
+        self.autoStartOn.setCheckable(True)
+        self.autoStartOff = QAction(MainWindow)
+        self.autoStartOff.setObjectName(u"autoStartOff")
+        self.autoStartOff.setCheckable(True)
         self.actionTentang_Aplikasi = QAction(MainWindow)
         self.actionTentang_Aplikasi.setObjectName(u"actionTentang_Aplikasi")
         self.actionHalaman_Github = QAction(MainWindow)
@@ -186,10 +190,10 @@ class Ui_MainWindow(object):
         self.menuPengaturan.addAction(self.menuJumlah_CPU_Digunakan.menuAction())
         self.menuPengaturan.addSeparator()
         self.menuPengaturan.addAction(self.menuMulai_Otomatis.menuAction())
-        self.menuJumlah_CPU_Digunakan.addAction(self.actionDiatur_Otomatis)
-        self.menuJumlah_CPU_Digunakan.addAction(self.actionDitentukan_Pengguna)
-        self.menuMulai_Otomatis.addAction(self.actionJalankan_Aplikasi_Saat_Perangkat_Dimulai)
-        self.menuMulai_Otomatis.addAction(self.actionTidak_Ditentukan)
+        self.menuJumlah_CPU_Digunakan.addAction(self.cpuThreadAuto)
+        self.menuJumlah_CPU_Digunakan.addAction(self.cpuThreadUserSet)
+        self.menuMulai_Otomatis.addAction(self.autoStartOn)
+        self.menuMulai_Otomatis.addAction(self.autoStartOff)
         self.menuTentang.addAction(self.actionTentang_Aplikasi)
         self.menuTentang.addAction(self.menuDibuat_oleh_Hattaakim.menuAction())
         self.menuDibuat_oleh_Hattaakim.addAction(self.actionHalaman_Github)
@@ -203,10 +207,10 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
-        self.actionDiatur_Otomatis.setText(QCoreApplication.translate("MainWindow", u"Ditentukan Otomatis", None))
-        self.actionDitentukan_Pengguna.setText(QCoreApplication.translate("MainWindow", u"Ditentukan Pengguna", None))
-        self.actionJalankan_Aplikasi_Saat_Perangkat_Dimulai.setText(QCoreApplication.translate("MainWindow", u"Jalankan Aplikasi Saat Perangkat Dimulai", None))
-        self.actionTidak_Ditentukan.setText(QCoreApplication.translate("MainWindow", u"Tidak Ditentukan", None))
+        self.cpuThreadAuto.setText(QCoreApplication.translate("MainWindow", u"Ditentukan Otomatis", None))
+        self.cpuThreadUserSet.setText(QCoreApplication.translate("MainWindow", u"Ditentukan Pengguna", None))
+        self.autoStartOn.setText(QCoreApplication.translate("MainWindow", u"Jalankan Aplikasi Saat Perangkat Dimulai", None))
+        self.autoStartOff.setText(QCoreApplication.translate("MainWindow", u"Tidak Ditentukan", None))
         self.actionTentang_Aplikasi.setText(QCoreApplication.translate("MainWindow", u"Tentang Aplikasi", None))
         self.actionHalaman_Github.setText(QCoreApplication.translate("MainWindow", u"Halaman Github", None))
         self.actionHalaman_Instagram.setText(QCoreApplication.translate("MainWindow", u"Halaman Instagram", None))
