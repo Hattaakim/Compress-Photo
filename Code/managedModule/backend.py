@@ -1,5 +1,6 @@
 import os, sys, json
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from typing import Literal
 from PIL import Image
 
 class fileDatabase:
@@ -79,6 +80,67 @@ fileExt TEXT NOT NULL, dateDeleted TEXT DEFAULT '~')"""
             ))
         return _result
 
+class UserPersonalization:
+    def __init__(self):
+        #### GLOBAL CONST FOR JSON FILE
+        self.maindir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
+        self.configFile = os.path.join(self.maindir, "config.json")
+        self.userConfigurationStruct = {
+            "perfSettings": ["threadUsageMode", "threadUsageUserDefinied"],
+            "autoStart": ["isEnabled"],
+            "compressSettings": ["megaPixel", "compressRatio", "deleteOriFile"]
+        }
+        self.userConfigurationCache = None
+
+        #### INITIALIZE THE APP CONFIG FOR THE FIRST TIME
+        self.onFirstRun()
+        self.cacheUserSettings()
+
+    #### INIT CODE ####
+    def cacheUserSettings(self):
+        """Set cache pengaturan pengguna"""
+        fPtr = open(self.configFile, "r")
+        self.userConfigurationCache = json.load(fPtr)
+        fPtr.close()
+
+    def onFirstRun(self):
+        """Fungsi untuk mendeteksi/menciptakan file config saat aplikasi baru berjalan"""
+        defaultConfigStruct = {
+            "perfSettings": {"threadUsageMode": 0, "threadUsageUserDefinied": 0},
+            "autoStart": {"isEnabled": 0},
+            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "deleteOriFile": 0}
+        }
+        if not os.path.isfile(self.configFile): # rewrite the config if not found
+            fPtr = open(self.configFile, "w")
+            json.dump(defaultConfigStruct, fPtr)
+            fPtr.close()
+
+    #### API Call Start From Here ####
+    def editUserConfig(self,
+                       which:Literal['perfSettings',
+                                     'autoStart',
+                                     'compressSettings'],
+                       index:int, newVal):
+        """Fungsi untuk mengedit user config berdasarkan (key, index ke?)"""
+        self.userConfigurationCache[which][
+            self.userConfigurationStruct[which][index]
+        ] = newVal
+        fPtr = open(self.configFile, "w")
+        json.dump(self.userConfigurationCache, fPtr)
+        fPtr.close()
+
+        self.cacheUserSettings()
+
+    def getUserConfig(self, 
+                      which:Literal['perfSettings', 
+                                    'autoStart', 
+                                    'compressSettings'], 
+                      index:int):
+        """Fungsi untuk mendapatkan user config berdasarkan (key, index ke?)"""
+        return self.userConfigurationCache[which][
+            self.userConfigurationStruct[which][index]
+        ]
+
 def verifyImageFile(filePath):
     """return nama file, ukuran awal, ekstensi file, format file, dukungan, tidak corrupt, bukan virus (0 uncheck 1 true 2 false)"""
     namaFile = ""
@@ -149,19 +211,6 @@ def returnAllFileFromPath(dirs:list, conn):
                     pass
     conn.send(allFile)
     conn.close()
-
-def onFirstRun():
-    """Fungsi untuk mendeteksi/menciptakan file config saat aplikasi baru berjalan"""
-    defaultConfig = {
-        "appSettings" : {"threadUsage": 0, "threadUsageUserDefinied": 0, "isAutoStartup": 0}
-    }
-    maindir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
-    configFile = os.path.join(maindir, "config.json")
-    if not os.path.isfile(configFile): # rewrite the config if not found
-        fPtr = open(configFile, "w")
-        json.dump(defaultConfig, fPtr)
-        fPtr.close()
-    pass
 
 def filterRedundantPath(listOfPath):
     """Untuk menyortir sebuah list of path yang kusut menjadi terstruktur agar tidak menghabiskan waktu CPU untuk walk ke path kusut"""
