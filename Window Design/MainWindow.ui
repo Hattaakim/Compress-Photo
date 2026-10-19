@@ -338,15 +338,15 @@ Tabel</string>
      <property name="title">
       <string>Jumlah CPU Digunakan</string>
      </property>
-     <addaction name="actionDiatur_Otomatis"/>
-     <addaction name="actionDitentukan_Pengguna"/>
+     <addaction name="cpuThreadAuto"/>
+     <addaction name="cpuThreadUserSet"/>
     </widget>
     <widget class="QMenu" name="menuMulai_Otomatis">
      <property name="title">
       <string>Mulai Otomatis</string>
      </property>
-     <addaction name="actionJalankan_Aplikasi_Saat_Perangkat_Dimulai"/>
-     <addaction name="actionTidak_Ditentukan"/>
+     <addaction name="autoStartOn"/>
+     <addaction name="autoStartOff"/>
     </widget>
     <addaction name="menuJumlah_CPU_Digunakan"/>
     <addaction name="separator"/>
@@ -370,22 +370,34 @@ Tabel</string>
    <addaction name="menuPengaturan"/>
    <addaction name="menuTentang"/>
   </widget>
-  <action name="actionDiatur_Otomatis">
+  <action name="cpuThreadAuto">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Ditentukan Otomatis</string>
    </property>
   </action>
-  <action name="actionDitentukan_Pengguna">
+  <action name="cpuThreadUserSet">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Ditentukan Pengguna</string>
    </property>
   </action>
-  <action name="actionJalankan_Aplikasi_Saat_Perangkat_Dimulai">
+  <action name="autoStartOn">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Jalankan Aplikasi Saat Perangkat Dimulai</string>
    </property>
   </action>
-  <action name="actionTidak_Ditentukan">
+  <action name="autoStartOff">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Tidak Ditentukan</string>
    </property>
