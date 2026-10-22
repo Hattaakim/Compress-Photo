@@ -153,38 +153,6 @@ File</string>
        </widget>
       </item>
       <item>
-       <widget class="QToolButton" name="startCompress">
-        <property name="minimumSize">
-         <size>
-          <width>70</width>
-          <height>80</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>70</width>
-          <height>80</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">background-color:transparent</string>
-        </property>
-        <property name="text">
-         <string>Mulai
-Kompresi</string>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>40</width>
-          <height>40</height>
-         </size>
-        </property>
-        <property name="toolButtonStyle">
-         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QToolButton" name="compressSettings">
         <property name="minimumSize">
          <size>
@@ -203,6 +171,38 @@ Kompresi</string>
         </property>
         <property name="text">
          <string>Pengaturan
+Kompresi</string>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>40</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="toolButtonStyle">
+         <enum>Qt::ToolButtonStyle::ToolButtonTextUnderIcon</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="startCompress">
+        <property name="minimumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>70</width>
+          <height>80</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:transparent</string>
+        </property>
+        <property name="text">
+         <string>Mulai
 Kompresi</string>
         </property>
         <property name="iconSize">
