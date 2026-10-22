@@ -1,9 +1,12 @@
-import os, sys, json
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
+from PySide6.QtCore import QDir, QFile, QSettings, QStandardPaths, QTextStream
+import os, sys, json, platform
 from typing import Literal
 from PIL import Image
 
-class fileDatabase:
+###### QtClass-Related Systems ######
+class QNativeFileDatabase:
+    """Qt Native Setting For Maintaining Database"""
     def __init__(self):
         self.fileDatabase = QSqlDatabase.addDatabase("QSQLITE")
         self.fileDatabase.setDatabaseName(":memory:")
@@ -80,10 +83,58 @@ fileExt TEXT NOT NULL, dateDeleted TEXT DEFAULT '~')"""
             ))
         return _result
 
+class QNativeBootStart:
+    """Qt Native Setting for Start On Boot"""
+    def __init__(self, appPathPassThrought):
+        self.appName = "Compress Photo"
+        self.appFullPath = QDir.toNativeSeparators(
+            appPathPassThrought
+        )
+        self.osType = platform.system()
+        self.qtRegSettings = None
+
+        if self.osType == "Windows":
+            self.qtRegSettings = QSettings(
+                r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run",
+                QSettings.Format.NativeFormat
+            )
+
+        elif self.osType == "Linux":
+            configDir = QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.GenericConfigLocation
+            )
+            autoStartDir = f"{configDir}/autostart"
+            QDir().mkpath(autoStartDir)
+            self.linuxAutoStartFp = f"{autoStartDir}/{self.appName}.desktop"
+            self.linuxAutoStartItem = ['[Desktop Entry]', 'Type=Application', f'Name={self.appName}',
+                                       f'Exec="{self.appFullPath}"','Terminal=false']
+
+    def enableAutoStart(self):
+        """By Enabling auto start, app can start at every booting"""
+        if self.osType == "Windows":
+            self.qtRegSettings.setValue(self.appName, f'"{self.appFullPath}"')
+
+        elif self.osType == "Linux":
+            file = QFile(self.linuxAutoStartFp)
+            if file.open(QFile.OpenModeFlag.WriteOnly | QFile.OpenModeFlag.Text):
+                out = QTextStream(file)
+                for cfg in self.linuxAutoStartItem:
+                    out << f"{cfg}\n"
+                file.close()
+
+    def disableAutoStart(self):
+        """By disabling auto start, app wasn't able to start at boot anymore"""
+        if self.osType == "Windows":
+            self.qtRegSettings.remove(self.appName)
+
+        elif self.osType == "Linux":
+            QFile.remove(self.linuxAutoStartFp)
+
+###### PythonNative-Related Class ######
 class UserPersonalization:
-    def __init__(self):
+    def __init__(self, appPathPassThrough):
         #### GLOBAL CONST FOR JSON FILE
-        self.maindir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
+        self.maindir = QDir.toNativeSeparators(appPathPassThrough)
         self.configFile = os.path.join(self.maindir, "config.json")
         self.userConfigurationStruct = {
             "perfSettings": ["threadUsageMode", "threadUsageUserDefinied"],
@@ -108,7 +159,7 @@ class UserPersonalization:
         defaultConfigStruct = {
             "perfSettings": {"threadUsageMode": 0, "threadUsageUserDefinied": 0},
             "autoStart": {"isEnabled": 0},
-            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "deleteOriFile": 0}
+            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "deleteOriFile": 0},
         }
         if not os.path.isfile(self.configFile): # rewrite the config if not found
             fPtr = open(self.configFile, "w")
@@ -128,7 +179,6 @@ class UserPersonalization:
         fPtr = open(self.configFile, "w")
         json.dump(self.userConfigurationCache, fPtr)
         fPtr.close()
-
         self.cacheUserSettings()
 
     def getUserConfig(self, 
@@ -140,6 +190,9 @@ class UserPersonalization:
         return self.userConfigurationCache[which][
             self.userConfigurationStruct[which][index]
         ]
+
+    def getPath(self):
+        return self.configFile
 
 def verifyImageFile(filePath):
     """return nama file, ukuran awal, ekstensi file, format file, dukungan, tidak corrupt, bukan virus (0 uncheck 1 true 2 false)"""
