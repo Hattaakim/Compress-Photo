@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'MainWindowJVwvfv.ui'
+## Form generated from reading UI file 'MainWindowMiYQfa.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -99,16 +99,6 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.startVerify)
 
-        self.startCompress = QToolButton(self.centralwidget)
-        self.startCompress.setObjectName(u"startCompress")
-        self.startCompress.setMinimumSize(QSize(70, 80))
-        self.startCompress.setMaximumSize(QSize(70, 80))
-        self.startCompress.setStyleSheet(u"background-color:transparent")
-        self.startCompress.setIconSize(QSize(40, 40))
-        self.startCompress.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-
-        self.horizontalLayout.addWidget(self.startCompress)
-
         self.compressSettings = QToolButton(self.centralwidget)
         self.compressSettings.setObjectName(u"compressSettings")
         self.compressSettings.setMinimumSize(QSize(70, 80))
@@ -118,6 +108,16 @@ class Ui_MainWindow(object):
         self.compressSettings.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
 
         self.horizontalLayout.addWidget(self.compressSettings)
+
+        self.startCompress = QToolButton(self.centralwidget)
+        self.startCompress.setObjectName(u"startCompress")
+        self.startCompress.setMinimumSize(QSize(70, 80))
+        self.startCompress.setMaximumSize(QSize(70, 80))
+        self.startCompress.setStyleSheet(u"background-color:transparent")
+        self.startCompress.setIconSize(QSize(40, 40))
+        self.startCompress.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+
+        self.horizontalLayout.addWidget(self.startCompress)
 
         self.line_2 = QFrame(self.centralwidget)
         self.line_2.setObjectName(u"line_2")
@@ -223,9 +223,9 @@ class Ui_MainWindow(object):
 "File Terpilih", None))
         self.startVerify.setText(QCoreApplication.translate("MainWindow", u"Verifikasi\n"
 "File", None))
-        self.startCompress.setText(QCoreApplication.translate("MainWindow", u"Mulai\n"
-"Kompresi", None))
         self.compressSettings.setText(QCoreApplication.translate("MainWindow", u"Pengaturan\n"
+"Kompresi", None))
+        self.startCompress.setText(QCoreApplication.translate("MainWindow", u"Mulai\n"
 "Kompresi", None))
         self.revealFile.setText(QCoreApplication.translate("MainWindow", u"Tunjukkan\n"
 "File", None))
