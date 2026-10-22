@@ -1,9 +1,9 @@
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QFileDialog, QListWidgetItem, QMainWindow, QMessageBox, QListWidget, QStyledItemDelegate, QTableView, QTreeView
-from PySide6.QtCore import QEvent, QItemSelectionModel, QModelIndex, QObject, QSize, QStandardPaths, QTimer, QVariantAnimation, Qt, Signal
-from PySide6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QComboBox, QFileDialog, QMainWindow, QMessageBox, QStyledItemDelegate, QTableView, QTreeView
+from PySide6.QtCore import QEvent, QModelIndex, QObject, QRegularExpression, QSize, QStandardPaths, QTimer, Qt, Signal
+from PySide6.QtGui import QIcon, QRegularExpressionValidator, QStandardItem, QStandardItemModel
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtSql import QSqlTableModel
-import sys, os, math, shiboken6, gc, subprocess
+import sys, os, math, shiboken6, gc, subprocess, platform
 from datetime import datetime
 from dataclasses import dataclass
 from typing import Literal, Callable
@@ -13,13 +13,22 @@ from multiprocessing import Pool, cpu_count, Queue, Pipe, Process
 from managedModule import backend, compressModule
 
 ######### Assets File ############
-from assets import resources #### PENTINGGGGGG RESOURCE REMAKE
+from assets import resources
 
 ######### Window ##########
-from windowModule import MainWindow, selectNewFile, PerfSettingCPUPerf
+from windowModule import MainWindow, selectNewFile, PerfSettingCPU, CompressSettings
 
 ######### Global Const #########
 APPID = "Compress Foto@hattaakim"
+
+######### Custom Class For Struct ########
+@dataclass
+class allTableModelStruct:
+    """Struct dictionary untuk merangkap (nama tabel sql, init delegate, whichButtonEnabled, whichButtonDisabled)"""
+    name: str
+    init_delegate: Callable
+    enabledButton: list
+    disabledButton: list
 
 ######### Internal Functions ##########
 def showInfo(parent, judul:str, 
@@ -126,12 +135,6 @@ def humanReadableSize(fileSize):
     i = min(int(math.log(abs(fileSize), 1024)), len(units)-1)
     return f"{fileSize / (1024**i):.2f} {units[i]}"
 
-######### Custom Class For Dictionary Helper ########
-@dataclass
-class TableConfig:
-    name: str
-    init_delegate: Callable
-
 ######### Custom Class For Qt6 Apps###########
 class TableAlignDelegate(QStyledItemDelegate):
     """Class untuk mengatur alignment tabel QTableView (bukan QSqlTableModel)"""
@@ -212,11 +215,11 @@ class SingleInstance(QApplication):
             self.server.removeServer(APPID)
             self.server.close()
 
-class DragnDropFilter(QObject):
+class TableViewDragnDropFilter(QObject):
     """Filter biar QTableView bisa accept dropEvent File/Folder"""
     def __init__(self, tView:QTableView, 
                  tModel:QSqlTableModel, 
-                 dbPassthrought:backend.fileDatabase, 
+                 dbPassthrought:backend.QNativeFileDatabase, 
                  type:Literal['File', 'Folder'], parent=None):
         super().__init__(parent)
         self.table = tView
@@ -273,6 +276,30 @@ class DragnDropFilter(QObject):
                     return True
         return False
 
+class LineEditDragnDropFilter(QObject):
+    def __init__(self, lineEdit, allFilePathCategory, parent=None):
+        self.lineEdit = lineEdit
+        self.allFilePathCategory = allFilePathCategory
+
+    def eventFilter(self, watched, event):
+        if watched == self.lineEdit:
+            if event.type() == QEvent.Type.DragEnter:
+                if event.mimeData().hasUrls():
+                    event.acceptProposedAction()
+
+            elif event.type() == QEvent.Type.Drop:
+                if event.mimeData().hasUrls():
+                    lokasiSimpan = os.path.normpath(event.mimeData().urls()[0].toLocalFile())
+                    if lokasiSimpan not in self.allFilePathCategory and os.path.isdir(lokasiSimpan):
+                        self.lineEdit.setText(f"{lokasiSimpan}")
+                    
+                    else:
+                        showInfo(self, "Ups.. Kesalahan", "Folder yang Anda pilih mungkin mengandung kategori sebagai berikut.\n1. Tujuan simpan sama dengan tujuan datangnya file foto\n2. Tujuan simpan tidak benar-benar ada\nTolong Verifikasi lagi ya. Kami menunggumu dengan santai!",
+                                 'info')
+                    event.acceptProposedAction()
+                    return True
+                return False
+
 class SaberButtonFilter(QObject):
     def __init__(self, saberPButton, parent=None):
         super().__init__(parent)
@@ -314,46 +341,6 @@ class WindowManager:
             gc.collect()
 
 ######## Window Class GUI #########
-class CPUSettings(QMainWindow, PerfSettingCPUPerf.Ui_MainWindow):
-    doneAction = Signal()
-    def __init__(self, uPInstancePassThrought:backend.UserPersonalization):
-        super().__init__()
-        self.setupUi(self)
-        self.setWindowTitle("Pengaturan CPU")
-
-        #### CONST for User Personalization Instance
-        self.userPersonalization = uPInstancePassThrought
-
-        #### CONST - User Device Performance ####
-        self.maxCore = cpu_count()
-
-        self.initScrollBar()
-
-        #### Signal and Slots
-        self.cpuCoreSlider.valueChanged.connect(self.sliderValueChanged)
-
-    def initScrollBar(self):
-        self.cpuCoreSlider.setMaximum(self.maxCore)
-
-    def sliderValueChanged(self, val):
-        summaryItem = []
-        finalText = "Ringkasan:\n"
-        if val < self.maxCore:
-            summaryItem.append(f"Sebanyak {val}/{self.maxCore} CPU akan digunakan aplikasi")
-        elif val >= self.maxCore:
-            summaryItem.append("Pengaturan tidak valid terdeteksi!")
-
-        if val < self.maxCore//2:
-            summaryItem.append("Performa aplikasi mungkin menurun akibat sedikitnya core yang digunakan")
-
-        elif self.maxCore - val < 2:
-            summaryItem.append("Perangkat Anda membutuhkan minimal 2 core untuk beroperasi dengan stabil.")
-            summaryItem.append("Stabilitas perangkat mungkin terganggu akibat core sisa dibawah yang dibutuhkan")
-
-        for i, sumText in enumerate(summaryItem, start=1):
-            finalText = finalText + f"{i}. {sumText}\n"
-        self.settingsSuggestion.setText(finalText)
-
 class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
     def __init__(self):
         """Initialize the Window as QMainWindow"""
@@ -374,6 +361,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             ":/tvp_daftarTerhapus": [":/tvp_fotoDitolak", ":/tvp_batalDiproses"]
         }
 
+        #### Global Const - Accessible For Anything ####
+        self.appFullPath = sys.executable if getattr(sys, 'frozen', False) else __file__
+        self.appPathJustDir = os.path.dirname(self.appFullPath) 
+
         #### CONST For Tree View Page Navigator ####
         self.treeModelItem = {
             "Daftar Utama": ["Foto Baru", "Siap Diproses", "Selesai Diproses"],
@@ -382,44 +373,57 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.treeModel = QStandardItemModel(self)
         self.pageNavRoot = self.treeModel.invisibleRootItem()
 
-        #### Global Const ####
+        #### Const For Table Model ####
         self.currentTableModel = 0
         self.currentRowClicked = None
-        self.sqlDb = backend.fileDatabase()
-        self.userPersonalization = backend.UserPersonalization()
+
+        #### Const For SQL Database ####
+        self.sqlDb = backend.QNativeFileDatabase()
+
+        #### Const For User Personalization .json ####
+        self.userPersonalization = backend.UserPersonalization(self.appPathJustDir)
+
+        #### Const For Start On Boot ####
+        self.startOnBoot = backend.QNativeBootStart(self.appFullPath)
+
+        #### Const For Parallelism Workers ####
+        self.numWorkers = 0
 
         #### CONST For SQL Table Model ####
-        self._reloadTableStatus = 0
-        self.allTableModel = {
-            0: TableConfig(name="fileJobTable", init_delegate=self.fileJobTableDelegateInit),
-            1: TableConfig(name="verifyFileTable", init_delegate=self.verifyFileTableDelegateInit),
-            2: TableConfig(name="compressedFileTable", init_delegate=self.compressedFileTableDelegateInit),
-            3: TableConfig(name="photoRejectedTable", init_delegate=self.photoRejectedTableDelegateInit),
-            4: TableConfig(name="photoCancelledTable", init_delegate=self.photoCancelledTableDelegateInit)
-        }
         self.sqlTableModel = QSqlTableModel(self, db=self.sqlDb.fileDatabase)
         self.sqlTableModel.setEditStrategy(QSqlTableModel.EditStrategy.OnManualSubmit)
+        self._reloadTableStatus = 0
+        self.allTableModel = {
+            0: allTableModelStruct(name="fileJobTable", init_delegate=self.fileJobTableDelegateInit,
+                                   enabledButton=[self.addJob, self.deleteSelected, self.startVerify, self.revealFile], 
+                                   disabledButton=[self.cancelDeleteSelected, self.startCompress, self.compressSettings]),
+            1: allTableModelStruct(name="verifyFileTable", init_delegate=self.verifyFileTableDelegateInit,
+                                   enabledButton=[self.deleteSelected, self.startCompress, self.compressSettings, self.revealFile],
+                                   disabledButton=[self.addJob, self.cancelDeleteSelected, self.startVerify]),
+            2: allTableModelStruct(name="compressedFileTable", init_delegate=self.compressedFileTableDelegateInit,
+                                   enabledButton=[self.revealFile, self.deleteSelected],
+                                   disabledButton=[self.addJob, self.cancelDeleteSelected, self.startVerify, self.startCompress, self.compressSettings]),
+            3: allTableModelStruct(name="photoRejectedTable", init_delegate=self.photoRejectedTableDelegateInit,
+                                   enabledButton=[self.deleteSelected, self.revealFile],
+                                   disabledButton=[self.addJob, self.cancelDeleteSelected, self.startVerify, self.startCompress, self.compressSettings]),
+            4: allTableModelStruct(name="photoCancelledTable", init_delegate=self.photoCancelledTableDelegateInit,
+                                   enabledButton=[self.cancelDeleteSelected, self.revealFile, self.deleteSelected],
+                                   disabledButton=[self.addJob, self.startVerify, self.startCompress, self.compressSettings])
+        }
+
+        #### Const For Table Headers and Delegate ####
         self.fotoBaruTableHeader = {"No.": 30, "Nama File": 90, "Lokasi File": 250, "Ekstensi File": 80}
         self.verifyFileTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 85, "Integritas File": 85, "File Aman": 65,"Ukuran Awal": 85}
         self.compressedFileTableHeader = self.verifyFileTableHeader | {"Ukuran Akhir": 75, "Penghematan": 70, "Lokasi Simpan": 250, "Dihapus": 70}
         self.photoRejectedTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 85, "Integritas File": 85, "File Aman": 65}
         self.photoCancelledTableHeader = self.fotoBaruTableHeader | {"Tanggal Dihapus": 100}
-
-        #### Const For Right Button In Each Page By currentTableModel([enabled], [disabled]) ####
-        self.whichButtonEnable = {0: ([self.addJob, self.deleteSelected, self.startVerify, self.revealFile], 
-                                      [self.cancelDeleteSelected, self.startCompress, self.compressSettings]),
-                                  1: ([self.deleteSelected, self.startCompress, self.compressSettings, self.revealFile],
-                                      [self.addJob, self.cancelDeleteSelected, self.startVerify]),
-                                  2: ([self.revealFile, self.deleteSelected],
-                                      [self.addJob, self.cancelDeleteSelected, self.startVerify, self.startCompress, self.compressSettings]),
-                                  3: ([self.deleteSelected, self.revealFile],
-                                      [self.addJob, self.cancelDeleteSelected, self.startVerify, self.startCompress, self.compressSettings]),
-                                  4: ([self.cancelDeleteSelected, self.revealFile, self.deleteSelected],
-                                       [self.addJob, self.startVerify, self.startCompress, self.compressSettings])}
-
-        #### CONST For Modular Table Header ####
         self.allTableHeader = [self.fotoBaruTableHeader, self.verifyFileTableHeader, self.compressedFileTableHeader,
                                self.photoRejectedTableHeader, self.photoCancelledTableHeader]
+
+        self.delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self)
+        self.delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
+        self.delegateFileSize = FileSizeTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
+        self.delegateTableInterpret = InterpretTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
 
         #### CONST FOR showInfo/bringQuestion Between different currentTableModel ####
         self.msgDeleteSelectedRow = ("Anda yakin ingin menghapus file ini dari daftar file? File asli Anda tidak akan terhapus dan file ini akan masuk ke dalam daftar 'Batal Diproses'", 
@@ -429,7 +433,6 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                                      "Anda yakin untuk menghapus permanen file ini dari daftar file? File asli Anda tidak akan terpengaruh.")
 
         #### CONST FOR Verify File Async Process ####
-        self.numWorkers = max(1, cpu_count()-2)
         self.pool = None
         self.verifyFileIPC = Queue()
         self.timerCheckVFIPC = QTimer(self)
@@ -459,6 +462,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.pageNavigator.setHeaderHidden(True)
         self.pageNavigator.setEditTriggers(QTreeView.EditTrigger.NoEditTriggers)
 
+        #### CONST For QAction Performa ####
+        self.perfSettings = {0: [self.cpuThreadAuto, self.cpuThreadUserSet],
+                        1: [self.autoStartOff, self.autoStartOn]}
+
         #### INIT FIRST START ####
         self.initSaberPushButton()
         self.initTreePageNavigator()
@@ -471,6 +478,14 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         #### SIGNAL AND SLOT FOR startVerifyFile
         self.timerUpdateVerifyTable.timeout.connect(self.forceUpdateTable)
         self.timerCheckVFIPC.timeout.connect(self.checkQueueVerifyFile)
+
+        #### SIGNAL AND SLOT for QAction::Performance Settings ####
+        self.cpuThreadAuto.triggered.connect(self.cpuSetBySystem)
+        self.cpuThreadUserSet.triggered.connect(self.cpuSetByUser)
+
+        #### SIGNAL AND SLOT for QAction::autoStart Settings #####
+        self.autoStartOn.triggered.connect(self.enableAutoStart)
+        self.autoStartOff.triggered.connect(self.disableAutoStart)
 
         #### SIGNAL AND SLOTS FOR TOP BAR PushButton ####
         self.addJob.clicked.connect(self.openAddJobWindow)
@@ -500,17 +515,18 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
     def initUserSettings(self):
         """Prepare pengaturan pengguna"""
         userThreadPref = self.userPersonalization.getUserConfig("perfSettings",0)
-        if userThreadPref == 0:
-            self.cpuThreadAuto.setChecked(True)
-        else:
-            self.cpuThreadUserSet.setChecked(True)
-
         autoStart = self.userPersonalization.getUserConfig("autoStart", 0)
-        if autoStart == 0:
-            self.autoStartOff.setChecked(True)
-        else:
-            self.autoStartOn.setChecked(True)
-    
+        for key, qActList in self.perfSettings.items():
+            for qAct in qActList:
+                qAct.setChecked(False)
+
+            if key == 0:
+                qActList[userThreadPref].setChecked(True)
+            elif key == 1:
+                qActList[autoStart].setChecked(True)
+
+        self.numWorkers = max(1, cpu_count()-2) if self.userPersonalization.getUserConfig("perfSettings",0) == 0 else self.userPersonalization.getUserConfig("perfSettings",1)
+
     def initSaberPushButton(self):
         """prepare tombol supaya bisa menyala saat dihover"""
         for key, listOfDir in self.saberPButton.items():
@@ -533,22 +549,19 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
 
         #### reset the sqlTableModel and universalTableView
         self.currentTableModel = page
-        t_Config = self.allTableModel[self.currentTableModel]
+        tableStruct = self.allTableModel[self.currentTableModel]
         self.universalTableView.setModel(None)
         self.sqlTableModel.clear()
-        self.sqlTableModel.setTable(t_Config.name)
+        self.sqlTableModel.setTable(tableStruct.name)
         self.universalTableView.setModel(self.sqlTableModel)
-        t_Config.init_delegate()
+        tableStruct.init_delegate()
         self.forceUpdateTable()
 
-        #### reinsert the header and column width
         for i, (header, colWidth) in enumerate(self.allTableHeader[self.currentTableModel].items()):
             self.sqlTableModel.setHeaderData(i, Qt.Orientation.Horizontal, header)
             self.universalTableView.setColumnWidth(i, colWidth)
 
-        #### make some button enable, and also disable
-        enabledButton, disabledButton = self.whichButtonEnable[self.currentTableModel]
-        for targetButton, status in [(enabledButton, True), (disabledButton, False)]:
+        for targetButton, status in [(tableStruct.enabledButton, True), (tableStruct.disabledButton, False)]:
             for button in targetButton:
                 button.setEnabled(status)
 
@@ -572,14 +585,46 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         """Paksa update SQLTable apapun yang sedang online"""
         hasil = self.sqlTableModel.select()
         if hasil == True:
-            self.reloadTable.setText("Reload Tabel\nSukses")
+            self.reloadTable.setText("Refresh Tabel\nSukses")
         else:
-            self.reloadTable.setText("Reload Tabel\nGagal")
+            self.reloadTable.setText("Refresh Tabel\nGagal")
         QTimer.singleShot(1000, self.forceUpdateTableStatusReset)
 
     def forceUpdateTableStatusReset(self):
         """reset status reload tabel jadi nama tombol itu lagi"""
         self.reloadTable.setText("Refresh\nTabel")
+
+    ##### PRIVATE FUNCTION RELY ON QAction::cpuCore #####
+    def cpuSetBySystem(self):
+        """Jumlah CPU diset oleh sistem"""
+        self.cpuThreadAuto.setChecked(False)
+        self.userPersonalization.editUserConfig('perfSettings',0,0)
+        self.userPersonalization.editUserConfig('perfSettings',1,0)
+        self.initUserSettings()
+        
+    def cpuSetByUser(self):
+        """Ketika pengguna mau set penggunaan CPUnya sendiri"""
+        self.cpuThreadUserSet.setChecked(False)
+        showInfo(self, "Peringatan Di Awal", "Pengaturan ini berpengaruh terhadap performa aplikasi dan stabilitas sistem Anda. Harap ubah dengan hati-hati!",
+                 'info')
+        cpuSetWindow = WM_.openWindow(CPUSettings, self.userPersonalization)
+        cpuSetWindow.show()
+        cpuSetWindow.doneAction.connect(self.initUserSettings)
+
+    ##### PRIVATE FUNCTION RELY ON QAction::autoStart #####
+    def enableAutoStart(self):
+        """Menjalankan auto start"""
+        self.autoStartOn.setChecked(False)
+        self.startOnBoot.enableAutoStart()
+        self.userPersonalization.editUserConfig('autoStart', 0, 1)
+        self.initUserSettings()
+    
+    def disableAutoStart(self):
+        """Matikan auto start"""
+        self.autoStartOff.setChecked(False)
+        self.startOnBoot.disableAutoStart()
+        self.userPersonalization.editUserConfig('autoStart', 0, 0)
+        self.initUserSettings()
 
     ##### PRIVATE FUNCTION RELY ON TOP LEFT QToolButton #####
     def deleteSelectedRow(self):
@@ -614,16 +659,12 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
 
     def closeAddJobWindow(self):
         """Trigger doneActionnya untuk memindahkan data dan reset table seamlessly"""
-        self.sqlDb.executeQuery(
-            querySQL="INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM newFileTable"
-        )
-        self.sqlTableModel.select()
-        self.sqlDb.executeQuery(
-            querySQL="DELETE FROM newFolderTable"
-        )
-        self.sqlDb.executeQuery(
-            querySQL="DELETE FROM newFileTable"
-        )
+        allQ = ["INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM newFileTable",
+                "DELETE FROM newFolderTable", "DELETE FROM newFileTable"]
+        for i, query in enumerate(allQ):
+            self.sqlDb.executeQuery(query)
+            if i == 1:
+                self.sqlTableModel.select()
 
     def cancelDelete(self):
         """Saat pengguna menekan row dan memencet cancel delete (file restored)"""
@@ -685,6 +726,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                          'warning')
 
     def checkQueueVerifyFile(self):
+        """Sebuah fungsi untuk mengecek IPC dari hasil Asinkronuous verifyFile"""
         while not self.verifyFileIPC.empty():
             hasil = self.verifyFileIPC.get()
             self._bufferVerifikasiFile.append(hasil)
@@ -757,76 +799,58 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
     ##### PAGE 2: verifyFileTable #####
     def verifyFileTableDelegateInit(self):
         """Table Delegate Init untuk tabel 'Siap Diproses'"""
-        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self)
-        delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateFileSize = FileSizeTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateTableInterpret = InterpretTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-
         for i in range(0,2):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
-        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(2, self.delegateTableLeftAlign)
         for i in range(3,5):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
         for i in range(5,8):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableInterpret)
-        self.universalTableView.setItemDelegateForColumn(8, delegateFileSize)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableInterpret)
+        self.universalTableView.setItemDelegateForColumn(8, self.delegateFileSize)
 
     ##### PAGE 3: compressedFileTable #####
     def compressedFileTableDelegateInit(self):
         """Table Delegate Init untuk tabel 'Selesai Diproses'"""
-        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self)
-        delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateFileSize = FileSizeTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateTableInterpret = InterpretTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-
         for i in range(0, 2):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
-        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(2, self.delegateTableLeftAlign)
         for i in range(3,5):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
         for i in range(5,8):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableInterpret)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableInterpret)
         for i in range(8,11):
-            self.universalTableView.setItemDelegateForColumn(i, delegateFileSize)  
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateFileSize)  
         for i in range(11,13):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
 
     ##### PAGE 4: photoRejectedTable #####
     def photoRejectedTableDelegateInit(self):
         """Table Delegate Init untuk tabel 'Foto Ditolak'"""
-        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft, self)
-        delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateFileSize = FileSizeTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateTableInterpret = InterpretTableDelegate(Qt.AlignmentFlag.AlignCenter, self)
-
         for i in range(0,2):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
-        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(2, self.delegateTableLeftAlign)
         for i in range(3,5):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
         for i in range(5,8):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableInterpret)
-        self.universalTableView.setItemDelegateForColumn(8, delegateFileSize)
-        self.universalTableView.setItemDelegateForColumn(9, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableInterpret)
+        self.universalTableView.setItemDelegateForColumn(8, self.delegateFileSize)
+        self.universalTableView.setItemDelegateForColumn(9, self.delegateTableCenterAlign)
 
     ##### PAGE 5: photoCancelledTable #####
     def photoCancelledTableDelegateInit(self):
         """Table Delegate Init untuk tabel 'Batal Diproses'"""
-        delegateTableCenterAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignCenter, self)
-        delegateTableLeftAlign = TableAlignDelegate(Qt.AlignmentFlag.AlignLeft)
         for i in range(0,2):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
-        self.universalTableView.setItemDelegateForColumn(2, delegateTableLeftAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(2, self.delegateTableLeftAlign)
         for i in range(3,5):
-            self.universalTableView.setItemDelegateForColumn(i, delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
 
-    ##### TOMBOL KEEMPAT - QToolButton::startVerify #####
-    ##### TOMBOL KETUJUH - QToolButton::revealFile #####
-
+#### <!--------------------------- Dynamic Button Window ------------------------------!>
+#### Window buat QToolButton yang kalau tombolnya dihover, tombolnya nyala
 class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
     """Is accessible from page 0 only"""
     doneAction = Signal()
-    def __init__(self, dbPassThrough:backend.fileDatabase):
+    def __init__(self, dbPassThrough:backend.QNativeFileDatabase):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("Pilih File atau Folder")
@@ -881,9 +905,9 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         self.fetchFileMPTimer = QTimer(self)
 
         #### Drag And Drop Filter ####
-        self.photoTableDropFilter = DragnDropFilter(self.photoTableView, self.photoTableModel, self.sqlDb, 'File', self)
+        self.photoTableDropFilter = TableViewDragnDropFilter(self.photoTableView, self.photoTableModel, self.sqlDb, 'File', self)
         self.photoTableView.installEventFilter(self.photoTableDropFilter)
-        self.folderTableDropFilter = DragnDropFilter(self.folderTableView, self.folderTableModel, self.sqlDb, 'Folder', self)
+        self.folderTableDropFilter = TableViewDragnDropFilter(self.folderTableView, self.folderTableModel, self.sqlDb, 'Folder', self)
         self.folderTableView.installEventFilter(self.folderTableDropFilter)
 
         #### Init Window ####
@@ -1186,6 +1210,100 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         event.ignore()
         self.tutupJendela()
 
+class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
+    def __init__(self, UPPassThrough:backend.UserPersonalization):
+        super().__init__()
+        self.setupUi(self)
+        self.userPersonalization = UPPassThrough
+
+        #### Window Const
+        self.mpRegex = QRegularExpressionValidator(QRegularExpression("^\d+Cm$"))
+        self.allFillAble = [self.megaPixel, self.photoQuality]
+    
+    def initGUI(self):
+        self.saveLocation.setReadOnly(True)
+        self.megaPixel.setEditable(True)
+        self.megaPixel.setInsertPolicy(QComboBox.InsertPolicy.InsertAtBottom)
+        self.megaPixel.lineEdit().setValidator(self.mpRegex)
+
+#### <!---------------------- MENU BAR WINDOW ---------------------------!> ####
+#### Window yang bisa diakses lewat menu bar ####
+class CPUSettings(QMainWindow, PerfSettingCPU.Ui_MainWindow):
+    doneAction = Signal()
+    def __init__(self, uPInstancePassThrought:backend.UserPersonalization):
+        super().__init__()
+        self.setupUi(self)
+
+        #### CONST for Window
+        self.appIcon = ':/ai_appDefaultIcon'
+        self.userPersonalization = uPInstancePassThrought
+        self.maxCore = cpu_count()
+
+        #### Init the first run
+        self.initGUI()
+
+        #### Signal and Slots
+        self.userDefiniedCPU.valueChanged.connect(self.onUserChangeCPU)
+        self.simpan.clicked.connect(self.onSettingsSaved)
+        self.batal.clicked.connect(self.closeWindow)
+
+    def initGUI(self):
+        """Mempersiapkan komponen GUI (Max CPU Settings, dll) agar UI Siap Dipakai"""
+        self.setWindowTitle("Pengaturan CPU")
+        self.setWindowIcon(QIcon(self.appIcon))
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        self.cpuAvailable.setReadOnly(True)
+        self.cpuAvailable.setText(f"{self.maxCore} Tersedia")
+        self.userDefiniedCPU.setMaximum(self.maxCore)
+        self.userDefiniedCPU.setMinimum(1)
+        self.userDefiniedCPU.setSingleStep(1)
+        self.userDefiniedCPU.setValue(max(1, self.maxCore-2))
+
+    def onUserChangeCPU(self, val):
+        """Respons khusus ketika user mengubah jumlah CPU Mutlak yang digunakan di range yang diluar nalar"""
+        if val >= self.maxCore:
+            showInfo(self, "Pengaturan Tidak Valid",
+                     "Maaf, kami tidak diizinkan untuk memakai seluruh Core CPU perangkat Anda untuk mencegah instabilitas sistem! Perangkat Anda membutuhkan minimal 1 Core untuk tetap berfungsi secara stabil.",
+                     'warning')
+            self.userDefiniedCPU.setValue(max(1, self.maxCore-1))
+
+        elif val <= 2:
+            jawaban = bringQuestion(self, "Menggunakan CPU Minimum",
+                                    f"Anda yakin untuk memakai hanya {val} dari {self.maxCore} jumlah CPU yang tersedia? Performa aplikasi (seperti ketika melakukan verifikasi file/kompresi) mungkin menurun. Jika perangkat Anda memiliki core yang terbatas, maka ini bukan masalah.",
+                                    'question', 'yes', 'no')
+            if jawaban != QMessageBox.Yes:
+                self.userDefiniedCPU.setValue(max(1, val+1))
+
+    def onSettingsSaved(self):
+        """Simpan pengaturan yang dibuat oleh pengguna"""
+        self.userDefiniedCPU.setReadOnly(True)
+        self.userPersonalization.editUserConfig('perfSettings', 0, 1)
+        self.userPersonalization.editUserConfig('perfSettings', 1, self.userDefiniedCPU.value())
+        self.doneAction.emit()
+        self.closeWindow(True)
+
+    def closeWindow(self, withOutQuestioning=False):
+        """Tutup jendela, dengan flag withOutQuestioning buat (ignore question)"""
+        if withOutQuestioning:
+            self.closeWindowAction()
+
+        else:
+            jawaban = bringQuestion(self, "Konfirmasi Tutup Jendela",
+                                    "Anda yakin ingin menutup jendela ini? Segala data yang tidak tersimpan akan hilang.",
+                                    'question', 'yes', 'no')
+            if jawaban == QMessageBox.Yes:
+                self.closeWindowAction()
+
+    def closeWindowAction(self):
+        """Fungsi untuk menutup jendela CPUSettings melalui WindowManager"""
+        WM_.closeWindow(CPUSettings)
+
+    def closeEvent(self, event):
+        """Mencegah penutupan tidak disengaja melalui tombol silang jendela"""
+        self.closeWindow()
+        event.ignore()
+
 ######### Window Class GUI #########
 class JendelaUtama(QMainWindow, MainWindow.Ui_MainWindow):
     def __init__(self):
@@ -1202,7 +1320,7 @@ class JendelaUtama(QMainWindow, MainWindow.Ui_MainWindow):
                          3: [self.stepFourNumber, self.stepFourTitle]}
         appMainDir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(__file__)
         self.assetFolder = os.path.join(appMainDir, "Assets")
-        self.sqlDatabase = backend.fileDatabase()
+        self.sqlDatabase = backend.QNativeFileDatabase()
         self.nowExitAble = True
         self.numWorkers = max(1, cpu_count()-2)
 
@@ -1889,7 +2007,6 @@ if __name__ == "__main__":
 
     else:
         WM_ = WindowManager()
-        uPs = backend.UserPersonalization()
-        firstPage = WM_.openWindow(CPUSettings, uPs)
+        firstPage = WM_.openWindow(HomeScreen)
         firstPage.show()
         app.exec()
