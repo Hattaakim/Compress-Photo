@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'CompressSettingsQKGIUd.ui'
+## Form generated from reading UI file 'CompressSettingsCcNOxI.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.12.0
 ##
@@ -15,7 +15,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout,
+from PySide6.QtWidgets import (QApplication, QCheckBox, QFrame, QHBoxLayout,
     QLabel, QLineEdit, QMainWindow, QPushButton,
     QSizePolicy, QSpacerItem, QSpinBox, QVBoxLayout,
     QWidget)
@@ -24,7 +24,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(469, 304)
+        MainWindow.resize(469, 336)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_4 = QVBoxLayout(self.centralwidget)
@@ -111,14 +111,10 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_3 = QVBoxLayout()
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
-        self.megaPixel = QComboBox(self.centralwidget)
-        self.megaPixel.addItem("")
-        self.megaPixel.addItem("")
-        self.megaPixel.addItem("")
-        self.megaPixel.addItem("")
-        self.megaPixel.addItem("")
-        self.megaPixel.addItem("")
+        self.megaPixel = QSpinBox(self.centralwidget)
         self.megaPixel.setObjectName(u"megaPixel")
+        self.megaPixel.setMinimum(1)
+        self.megaPixel.setMaximum(200)
 
         self.verticalLayout_3.addWidget(self.megaPixel)
 
@@ -137,10 +133,10 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout.addWidget(self.saveLocation)
 
-        self.pushButton_4 = QPushButton(self.centralwidget)
-        self.pushButton_4.setObjectName(u"pushButton_4")
+        self.chooseDir = QPushButton(self.centralwidget)
+        self.chooseDir.setObjectName(u"chooseDir")
 
-        self.horizontalLayout.addWidget(self.pushButton_4)
+        self.horizontalLayout.addWidget(self.chooseDir)
 
 
         self.verticalLayout_3.addLayout(self.horizontalLayout)
@@ -151,10 +147,15 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_3)
 
-        self.pushButton = QPushButton(self.centralwidget)
-        self.pushButton.setObjectName(u"pushButton")
+        self.deleteOriginalFile = QCheckBox(self.centralwidget)
+        self.deleteOriginalFile.setObjectName(u"deleteOriginalFile")
 
-        self.verticalLayout_4.addWidget(self.pushButton)
+        self.verticalLayout_4.addWidget(self.deleteOriginalFile)
+
+        self.recommendedSettings = QPushButton(self.centralwidget)
+        self.recommendedSettings.setObjectName(u"recommendedSettings")
+
+        self.verticalLayout_4.addWidget(self.recommendedSettings)
 
         self.line_2 = QFrame(self.centralwidget)
         self.line_2.setObjectName(u"line_2")
@@ -169,15 +170,15 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addItem(self.horizontalSpacer)
 
-        self.pushButton_2 = QPushButton(self.centralwidget)
-        self.pushButton_2.setObjectName(u"pushButton_2")
+        self.batal = QPushButton(self.centralwidget)
+        self.batal.setObjectName(u"batal")
 
-        self.horizontalLayout_2.addWidget(self.pushButton_2)
+        self.horizontalLayout_2.addWidget(self.batal)
 
-        self.pushButton_3 = QPushButton(self.centralwidget)
-        self.pushButton_3.setObjectName(u"pushButton_3")
+        self.simpanDanTutup = QPushButton(self.centralwidget)
+        self.simpanDanTutup.setObjectName(u"simpanDanTutup")
 
-        self.horizontalLayout_2.addWidget(self.pushButton_3)
+        self.horizontalLayout_2.addWidget(self.simpanDanTutup)
 
 
         self.verticalLayout_4.addLayout(self.horizontalLayout_2)
@@ -203,19 +204,23 @@ class Ui_MainWindow(object):
         self.label_5.setText(QCoreApplication.translate("MainWindow", u"=", None))
         self.label_6.setText(QCoreApplication.translate("MainWindow", u"=", None))
         self.label_7.setText(QCoreApplication.translate("MainWindow", u"=", None))
-        self.megaPixel.setItemText(0, QCoreApplication.translate("MainWindow", u"20Mp", None))
-        self.megaPixel.setItemText(1, QCoreApplication.translate("MainWindow", u"18Mp", None))
-        self.megaPixel.setItemText(2, QCoreApplication.translate("MainWindow", u"16Mp", None))
-        self.megaPixel.setItemText(3, QCoreApplication.translate("MainWindow", u"14Mp", None))
-        self.megaPixel.setItemText(4, QCoreApplication.translate("MainWindow", u"12Mp", None))
-        self.megaPixel.setItemText(5, QCoreApplication.translate("MainWindow", u"10Mp", None))
-
+        self.megaPixel.setSuffix(QCoreApplication.translate("MainWindow", u"Mp", None))
+#if QT_CONFIG(tooltip)
+        self.photoQuality.setToolTip(QCoreApplication.translate("MainWindow", u"Semakin kecil kualitas, semakin blur gambar yang dihasilkan", None))
+#endif // QT_CONFIG(tooltip)
         self.photoQuality.setSuffix(QCoreApplication.translate("MainWindow", u"%", None))
+#if QT_CONFIG(tooltip)
+        self.saveLocation.setToolTip(QCoreApplication.translate("MainWindow", u"Diset secara default. Ubah dengan menekan \"Pilih Folder\" atau drag-n-drop folder ke line edit.", None))
+#endif // QT_CONFIG(tooltip)
         self.saveLocation.setInputMask("")
         self.saveLocation.setPlaceholderText(QCoreApplication.translate("MainWindow", u"Mendukung Drag and Drop", None))
-        self.pushButton_4.setText(QCoreApplication.translate("MainWindow", u"Pilih Folder", None))
-        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Gunakan Pengaturan yang Direkomendasikan", None))
-        self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"Batal", None))
-        self.pushButton_3.setText(QCoreApplication.translate("MainWindow", u"Simpan dan Tutup", None))
+        self.chooseDir.setText(QCoreApplication.translate("MainWindow", u"Pilih Folder", None))
+        self.deleteOriginalFile.setText(QCoreApplication.translate("MainWindow", u"Hapus File Asli (Tidak Direkomendasikan)", None))
+#if QT_CONFIG(tooltip)
+        self.recommendedSettings.setToolTip(QCoreApplication.translate("MainWindow", u"Gunakan pengaturan yang kami rekomendasikan", None))
+#endif // QT_CONFIG(tooltip)
+        self.recommendedSettings.setText(QCoreApplication.translate("MainWindow", u"Gunakan Pengaturan yang Direkomendasikan", None))
+        self.batal.setText(QCoreApplication.translate("MainWindow", u"Batal", None))
+        self.simpanDanTutup.setText(QCoreApplication.translate("MainWindow", u"Simpan dan Tutup", None))
     # retranslateUi
 

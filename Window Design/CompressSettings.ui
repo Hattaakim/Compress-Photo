@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>469</width>
-    <height>304</height>
+    <height>336</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -184,41 +184,23 @@
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="QComboBox" name="megaPixel">
-          <item>
-           <property name="text">
-            <string>20Mp</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>18Mp</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>16Mp</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>14Mp</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>12Mp</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>10Mp</string>
-           </property>
-          </item>
+         <widget class="QSpinBox" name="megaPixel">
+          <property name="suffix">
+           <string>Mp</string>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>200</number>
+          </property>
          </widget>
         </item>
         <item>
          <widget class="QSpinBox" name="photoQuality">
+          <property name="toolTip">
+           <string>Semakin kecil kualitas, semakin blur gambar yang dihasilkan</string>
+          </property>
           <property name="suffix">
            <string>%</string>
           </property>
@@ -237,6 +219,9 @@
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
            <widget class="QLineEdit" name="saveLocation">
+            <property name="toolTip">
+             <string>Diset secara default. Ubah dengan menekan &quot;Pilih Folder&quot; atau drag-n-drop folder ke line edit.</string>
+            </property>
             <property name="inputMask">
              <string/>
             </property>
@@ -246,7 +231,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_4">
+           <widget class="QPushButton" name="chooseDir">
             <property name="text">
              <string>Pilih Folder</string>
             </property>
@@ -259,7 +244,17 @@
      </layout>
     </item>
     <item>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QCheckBox" name="deleteOriginalFile">
+      <property name="text">
+       <string>Hapus File Asli (Tidak Direkomendasikan)</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="recommendedSettings">
+      <property name="toolTip">
+       <string>Gunakan pengaturan yang kami rekomendasikan</string>
+      </property>
       <property name="text">
        <string>Gunakan Pengaturan yang Direkomendasikan</string>
       </property>
@@ -288,14 +283,14 @@
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="batal">
         <property name="text">
          <string>Batal</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="pushButton_3">
+       <widget class="QPushButton" name="simpanDanTutup">
         <property name="text">
          <string>Simpan dan Tutup</string>
         </property>
