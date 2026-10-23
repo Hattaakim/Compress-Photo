@@ -139,7 +139,7 @@ class UserPersonalization:
         self.userConfigurationStruct = {
             "perfSettings": ["threadUsageMode", "threadUsageUserDefinied"],
             "autoStart": ["isEnabled"],
-            "compressSettings": ["megaPixel", "compressRatio", "deleteOriFile"]
+            "compressSettings": ["megaPixel", "compressRatio", "saveLoc", "deleteOriFile"]
         }
         self.userConfigurationCache = None
 
@@ -159,7 +159,7 @@ class UserPersonalization:
         defaultConfigStruct = {
             "perfSettings": {"threadUsageMode": 0, "threadUsageUserDefinied": 0},
             "autoStart": {"isEnabled": 0},
-            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "deleteOriFile": 0},
+            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "saveLoc": "default", "deleteOriFile": 0},
         }
         if not os.path.isfile(self.configFile): # rewrite the config if not found
             fPtr = open(self.configFile, "w")
