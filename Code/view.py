@@ -6,7 +6,7 @@ from PySide6.QtSql import QSqlTableModel
 import sys, os, math, shiboken6, gc, subprocess, platform
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Literal, Callable
+from typing import Literal, Callable, Any
 from multiprocessing import Pool, cpu_count, Queue, Pipe, Process
 
 ######### Externally Managed Module #########
@@ -277,9 +277,11 @@ class TableViewDragnDropFilter(QObject):
         return False
 
 class LineEditDragnDropFilter(QObject):
-    def __init__(self, lineEdit, allFilePathCategory, parent=None):
+    def __init__(self, lineEdit, parent=None):
+        super().__init__(parent)
+        self.parent = parent
         self.lineEdit = lineEdit
-        self.allFilePathCategory = allFilePathCategory
+        self.defaultSavePath = os.path.join(os.environ["USERPROFILE"], "Downloads")
 
     def eventFilter(self, watched, event):
         if watched == self.lineEdit:
@@ -290,15 +292,17 @@ class LineEditDragnDropFilter(QObject):
             elif event.type() == QEvent.Type.Drop:
                 if event.mimeData().hasUrls():
                     lokasiSimpan = os.path.normpath(event.mimeData().urls()[0].toLocalFile())
-                    if lokasiSimpan not in self.allFilePathCategory and os.path.isdir(lokasiSimpan):
+                    if os.path.isdir(lokasiSimpan):
                         self.lineEdit.setText(f"{lokasiSimpan}")
-                    
+                        if lokasiSimpan != self.defaultSavePath:
+                            self.lineEdit.setToolTip("")
+
                     else:
-                        showInfo(self, "Ups.. Kesalahan", "Folder yang Anda pilih mungkin mengandung kategori sebagai berikut.\n1. Tujuan simpan sama dengan tujuan datangnya file foto\n2. Tujuan simpan tidak benar-benar ada\nTolong Verifikasi lagi ya. Kami menunggumu dengan santai!",
+                        showInfo(self.parent, "Ups, ada kesalahan", "Folder yang kamu pilih harus merupakan folder (bukan file). Silahkan dicoba lagi!",
                                  'info')
                     event.acceptProposedAction()
                     return True
-                return False
+        return False
 
 class SaberButtonFilter(QObject):
     def __init__(self, saberPButton, parent=None):
@@ -491,9 +495,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.addJob.clicked.connect(self.openAddJobWindow)
         self.deleteSelected.clicked.connect(self.deleteSelectedRow)
         self.cancelDeleteSelected.clicked.connect(self.cancelDelete)
+        self.startVerify.clicked.connect(self.startVerifyFile)
+        self.compressSettings.clicked.connect(self.openCompressSettings)
         self.revealFile.clicked.connect(self.revealFileOnFE)
         self.reloadTable.clicked.connect(self.forceUpdateTable)
-        self.startVerify.clicked.connect(self.startVerifyFile)
 
         #### SIGNAL & SLOTS FOR UNIVERSALTABLEVIEW ####
         self.universalTableView.clicked.connect(self.universalTableRowClicked)
@@ -753,6 +758,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                 self.doneVerifyCount = 0
                 self.verifyFileThreadStatus = 0 
                 self.forceUpdateTable()
+
+    def openCompressSettings(self):
+        window = WM_.openWindow(PengaturanKompresi, self.userPersonalization)
+        window.show()
 
     def revealFileOnFE(self):
         """Saat pengguna menekan row dan memencet reveal file 
@@ -1211,20 +1220,117 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         self.tutupJendela()
 
 class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
+    """Kelas Window untuk Pengaturan kompresi, akses melalui tombol yang bisa dihover"""
     def __init__(self, UPPassThrough:backend.UserPersonalization):
         super().__init__()
         self.setupUi(self)
-        self.userPersonalization = UPPassThrough
 
         #### Window Const
-        self.mpRegex = QRegularExpressionValidator(QRegularExpression("^\d+Cm$"))
-        self.allFillAble = [self.megaPixel, self.photoQuality]
+        self.appIcon = ':/ai_appDefaultIcon'
+        self.userPersonalization = UPPassThrough
+        self.defaultSavePath = os.path.join(os.environ["USERPROFILE"], "Downloads")
+        self.allSettings = [self.megaPixel, self.photoQuality, self.chooseDir, self.recommendedSettings]
+        self.lineEditFilter = LineEditDragnDropFilter(self.saveLocation, self)
+
+        #### Init Code
+        self.initGUI()
+        self.initUPSettings()
+
+        #### Signal & Slots
+        self.chooseDir.clicked.connect(self.chooseSaveFolder)
+        self.deleteOriginalFile.clicked.connect(self.onDeleteFileCheck)
+        self.recommendedSettings.clicked.connect(self.useRecommendedSettings)
+        self.simpanDanTutup.clicked.connect(self.commitAllSettings)
+        self.batal.clicked.connect(lambda: self.closeWindow())
     
     def initGUI(self):
+        """Persiapkan GUI"""
+        self.setWindowIcon(QIcon(self.appIcon))
+        self.setWindowTitle("Pengaturan Kompresi")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.saveLocation.setReadOnly(True)
-        self.megaPixel.setEditable(True)
-        self.megaPixel.setInsertPolicy(QComboBox.InsertPolicy.InsertAtBottom)
-        self.megaPixel.lineEdit().setValidator(self.mpRegex)
+        self.saveLocation.installEventFilter(self.lineEditFilter)
+    
+    def initUPSettings(self):
+        """Persiapkan pengaturan pengguna yang sebelumnya (kalau ada)"""
+        self.megaPixel.setValue(self.userPersonalization.getUserConfig('compressSettings',0))
+        self.photoQuality.setValue(self.userPersonalization.getUserConfig('compressSettings',1))
+        self.deleteOriginalFile.setChecked(bool(self.userPersonalization.getUserConfig('compressSettings',3)))
+
+        if self.userPersonalization.getUserConfig('compressSettings',2) == "default" or self.defaultSavePath:
+            self.saveLocation.setText(self.defaultSavePath)
+            self.defaultFolderToolTip()
+        else:
+            self.saveLocation.setText(self.userPersonalization.getUserConfig('compressSettings',2))
+            self.saveLocation.setToolTip("")
+    
+    def chooseSaveFolder(self):
+        """Fungsi bagi user supaya bisa milih folder untuk simpan file lewat metode klik tombol"""
+        choosedFolder = chooseFolder(self, "Pilih Folder Untuk Menyimpan")
+        if choosedFolder != None:
+            fDirNormPath = os.path.normpath(choosedFolder)
+            self.saveLocation.setText(fDirNormPath)
+            if fDirNormPath == self.defaultSavePath:
+                self.defaultFolderToolTip()
+            else:
+                self.saveLocation.setToolTip("")
+
+    def defaultFolderToolTip(self):
+        self.saveLocation.setToolTip("Folder default di 'Downloads/[Compressed-Tanggal]' untuk menyimpan hasil kompresi.")
+
+    def onDeleteFileCheck(self):
+        """Respons ketika pengguna ngecheck delete original file"""
+        self.deleteOriginalFile.setChecked(False)
+        jawaban = bringQuestion(self, "AREA BERBAHAYA: KONFIRMASI DIBUTUHKAN",
+                                "Apakah Anda YAKIN UNTUK MENGHAPUS FILE FOTO ASLI setelah dikompresi? Penghapusan ini bersifat irreversible.",
+                                'warning', 'yes', 'no')
+        if jawaban == QMessageBox.Yes:
+            self.deleteOriginalFile.setChecked(True)
+            showInfo(self, "Informasi", "File Foto asli AKAN DIHAPUS sesaat setelah proses kompresi selesai", 'info')
+        else:
+            self.deleteOriginalFile.setChecked(False)
+    
+    def useRecommendedSettings(self):
+        """Paling direkomendasikan hehe"""
+        _confirm = bringQuestion(self, "Pengaturan Akan Ditimpa",
+                                 """Anda yakin ingin menimpa pengaturan saat ini dengan pengaturan yang direkomendasikan? Perubahan yang akan terjadi
+1. Resolusi akan diubah menjadi 12Mp
+2. Kualitas Dipertahankan menjadi 85%,
+3. Opsi hapus file foto asli akan diunchecked
+Konfirmasi YES bila Anda yakin!""", 'question', 'yes', 'no')
+        if _confirm == QMessageBox.Yes:
+            self.megaPixel.setValue(12)
+            self.photoQuality.setValue(85)
+            self.deleteOriginalFile.setChecked(False)
+
+    def commitAllSettings(self):
+        """Simpan semua pengaturan pengguna"""
+        for qObject in self.allSettings:
+            qObject.setDisabled(True)
+        getSettings = (self.megaPixel.value(), self.photoQuality.value(), self.saveLocation.text(), int(self.deleteOriginalFile.isChecked()))
+        for i, val in enumerate(getSettings):
+            self.userPersonalization.editUserConfig('compressSettings', i, val)
+        self.closeWindow(isQuestioned=False)
+
+    def closeWindow(self, isQuestioned:bool=True):
+        """Fungsi ramah yang bertanya (atau dioverride) saat jendela mau ditutup"""
+        if isQuestioned:
+            _konfirmasi = bringQuestion(self, "Tutup Jendela", "Apakah Anda yakin ingin menutup jendela ini? Data yang tidak tersimpan akan hilang!",
+                                        'question', 'yes', 'no')
+            if _konfirmasi == QMessageBox.Yes:
+                self._closeWindowFunction()
+
+        elif isQuestioned == False:
+            self._closeWindowFunction()
+
+    def _closeWindowFunction(self):
+        """Fungsi untuk menutup jendela tanpa ampun"""
+        WM_.closeWindow(PengaturanKompresi)
+
+    def closeEvent(self, event):
+        """Cegah penutupan jendela tanpa WindowManager Instance"""
+        event.ignore()
+        self.closeWindow()
 
 #### <!---------------------- MENU BAR WINDOW ---------------------------!> ####
 #### Window yang bisa diakses lewat menu bar ####
