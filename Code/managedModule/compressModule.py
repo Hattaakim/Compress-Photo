@@ -1,4 +1,4 @@
-import os, math
+import os, math, io
 from PIL import Image, ImageFile, ImageOps
 import pillow_heif
 
@@ -7,28 +7,47 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 #untuk gambar HEIF/HEIC
 pillow_heif.register_heif_opener()
 
-def compressImage(fPath, outDir: os.PathLike,
-                max_pixels:int=12_000_000, quality:int=85, delOriFile:bool=False):
-    """Return namaFile, sizeAkhir, Dihemat, Status, DisimpanDi, DIhapus (0 stip 1 centang 2 silang)"""
-    # default to 12mp 85% quality
-    namaFile = ""
-    statusKompresi = 0
-    fileSizeAwal = 0
-    fileSizeAkhir = 0
-    penghematanSize = 0
-    outPath = False
-    fileDeleted = 0
+def compressImageHelper(filePath, outDir, resamplingAlgorithm,
+                  megaPixel, quality, cConn):
+    """Helper function to access compressImage when doing compressSample"""
+    if isinstance(filePath, bytes):
+        filePath = io.BytesIO(filePath)
+    cConn.send(compressImage(filePath, outDir, resamplingAlgorithm, megaPixel, quality, False))
+    cConn.close()
+
+def compressImage(filePath, outDir, resamplingAlgorithm=1,
+                  megaPixel:int=12_000_000, quality:int=85,
+                  saveFormat:str='JPEG',deleteOriginal:bool=False):
+    ##### Variable
+    fileName = ""
+    outPath = ""
+    processStats = {"compressionStatus": 0,
+                    "fileSizeAwal": 0.00,
+                    "fileSizeAkhir": 0.00,
+                    "penghematanUkuran": 0.00,
+                    "fileDeleted": 2 if deleteOriginal == False else 0}
+    allResampling = {0: Image.Resampling.NEAREST,
+                   1: Image.Resampling.LANCZOS,
+                   2: Image.Resampling.BILINEAR,
+                   3: Image.Resampling.BICUBIC,
+                   4: Image.Resampling.BOX,
+                   5: Image.Resampling.HAMMING,
+                   6: Image.Resampling.MKS2013,
+                   7: Image.Resampling.MKS2021}
+
+    #### Process the file identity
+    if os.path.isfile(filePath) and os.path.isdir(outDir):
+        fileName = os.path.basename(filePath)
+        outPath = os.path.join(outDir, f"{os.path.splitext(fileName)[0]}-Compressed.{saveFormat.lower()}")
+        processStats["fileSizeAwal"] = os.path.getsize(filePath)
+
+    else:
+        processStats['compressionStatus'] = 2
+        return (processStats['compressionStatus'], processStats['fileSizeAkhir'], processStats['penghematanUkuran'], outPath, processStats['fileDeleted'], fileName)
 
     try:
-        fileSizeAwal = os.path.getsize(fPath)
-        namaFile = os.path.basename(fPath)
-        namaFileSplit = os.path.splitext(namaFile)
-        outPath = os.path.join(outDir, 
-                               f"{namaFileSplit[0]}-Compressed{namaFileSplit[1].lower()}")
-
-        imgObj = Image.open(fPath)
+        imgObj = Image.open(filePath)
         imgObj = ImageOps.exif_transpose(imgObj)
-
         if imgObj.mode in ('RGBA', 'LA') or (imgObj.mode == 'P' and 'transparency'
                                                 in imgObj.info):
             alpha = imgObj.convert('RGBA').split()[-1]
@@ -40,30 +59,25 @@ def compressImage(fPath, outDir: os.PathLike,
 
         w,h = imgObj.size
         currentPixels = w*h
-        if currentPixels > max_pixels:
-            rasio = math.sqrt(max_pixels/currentPixels)
+        if currentPixels > megaPixel:
+            rasio = math.sqrt(megaPixel/currentPixels)
             widthBaru = int(w*rasio)
             heightBaru = int(h*rasio)
-            imgObj = imgObj.resize((widthBaru, heightBaru),
-                                    Image.Resampling.LANCZOS) 
+            imgObj = imgObj.resize((widthBaru, heightBaru), resample=allResampling[resamplingAlgorithm])
 
-        imgObj.save(outPath, 'JPEG',
+        imgObj.save(outPath, saveFormat,
                     quality=quality, optimize=True)
         imgObj.close()
+        processStats['compressionStatus'] = 1
+        processStats['fileSizeAkhir'] = os.path.getsize(outPath)
+        processStats['penghematanUkuran'] = processStats['fileSizeAwal'] - processStats['fileSizeAkhir']
 
-        statusKompresi = 1
-        fileSizeAkhir = os.path.getsize(outPath)
-        penghematanSize = fileSizeAwal - fileSizeAkhir
+        if deleteOriginal:
+            os.remove(filePath)
+            processStats['fileDeleted'] = 1
 
-        if delOriFile == True:
-            try:
-                os.remove(fPath)
-                fileDeleted = 1
+        return (processStats['compressionStatus'], processStats['fileSizeAkhir'], processStats['penghematanUkuran'], outPath, processStats['fileDeleted'], fileName)
 
-            except (FileNotFoundError, PermissionError, OSError, IsADirectoryError):
-                fileDeleted = 2
-
-        return (statusKompresi, fileSizeAkhir, penghematanSize, outPath, fileDeleted, namaFile)
-
-    except Exception as e:
-        return (statusKompresi, fileSizeAkhir, penghematanSize, outPath, fileDeleted, namaFile)
+    except Exception:
+        processStats['compressionStatus'] = 2
+        return (processStats['compressionStatus'], processStats['fileSizeAkhir'], processStats['penghematanUkuran'], outPath, processStats['fileDeleted'], fileName)
