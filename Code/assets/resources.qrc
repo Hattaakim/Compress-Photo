@@ -38,5 +38,14 @@
         <file alias="tvp_daftarTerhapus">i/tvp/daftarTerhapus.png</file>
         <file alias="tvp_fotoDitolak">i/tvp/fotoDitolak.png</file>
         <file alias="tvp_batalDiproses">i/tvp/batalDiproses.png</file>
+
+        <!-- (cs) COMPRESSION SETTINGS ICON-->
+        <file alias="cs_chooseFolderIcon">i/cs/chooseFolderIcon.png</file>
+        <file alias="cs_openSamplePhotoIcon">i/cs/openSamplePhotoIcon.png</file>
+        <file alias="cs_recommenddedSettingsIcon">i/cs/recommenddedSettingsIcon.png</file>
+
+        <!-- (is) IMAGE SAMPLE ICON-->
+        <file alias="is_scaleUp">i/is/scaleUp.png</file>
+        <file alias="is_scaleDown">i/is/scaleDown.png</file>
     </qresource>
 </RCC>
