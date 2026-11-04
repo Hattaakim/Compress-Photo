@@ -1,8 +1,10 @@
 from PySide6.QtSql import QSqlDatabase, QSqlQuery
 from PySide6.QtCore import QDir, QFile, QSettings, QStandardPaths, QTextStream
-import os, sys, json, platform
+import os, json, platform, numpy, cv2, pillow_heif
 from typing import Literal
 from PIL import Image
+
+pillow_heif.register_heif_opener()
 
 ###### QtClass-Related Systems ######
 class QNativeFileDatabase:
@@ -29,7 +31,8 @@ isNotVirus INTEGER DEFAULT 0, fileSize0 FLOAT DEFAULT 0.00)""",
 """CREATE TABLE IF NOT EXISTS compressedFileTable(
 id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, fileDir TEXT NOT NULL, fileExt TEXT NOT NULL, fileFormat TEXT NOT NULL, 
 isSupported INTEGER NOT NULL, isNotCorrupted INTEGER NOT NULL, isNotVirus INTEGER NOT NULL, fileSize0 FLOAT NOT NULL, 
-fileSize1 FLOAT DEFAULT 0.00, sizeReduced FLOAT DEFAULT 0.00, savePath TEXT DEFAULT '-', isDeleted INTEGER DEFAULT 0)""",
+fileSize1 FLOAT DEFAULT 0.00, sizeReduced FLOAT DEFAULT 0.00, compressStatus INTEGER DEFAULT 0, savePath TEXT DEFAULT '-', 
+isDeleted INTEGER DEFAULT 0)""",
 
 """CREATE TABLE IF NOT EXISTS photoRejectedTable(id INTEGER PRIMARY KEY, fileName TEXT NOT NULL, 
 fileDir TEXT NOT NULL, fileExt TEXT NOT NULL, fileFormat TEXT NOT NULL, isSupported INTEGER NOT NULL,
@@ -139,7 +142,7 @@ class UserPersonalization:
         self.userConfigurationStruct = {
             "perfSettings": ["threadUsageMode", "threadUsageUserDefinied"],
             "autoStart": ["isEnabled"],
-            "compressSettings": ["megaPixel", "compressRatio", "saveLoc", "deleteOriFile"]
+            "compressSettings": ["megaPixel", "compressRatio", "saveLoc", "saveFormat", "deleteOriFile", "resamplingAlgorithm"]
         }
         self.userConfigurationCache = None
 
@@ -159,7 +162,9 @@ class UserPersonalization:
         defaultConfigStruct = {
             "perfSettings": {"threadUsageMode": 0, "threadUsageUserDefinied": 0},
             "autoStart": {"isEnabled": 0},
-            "compressSettings": {"megaPixel": 12, "compressRatio": 85, "saveLoc": "default", "deleteOriFile": 0},
+            "compressSettings": {"megaPixel": 12, "compressRatio": 85, 
+                                 "saveLoc": "default", "saveFormat" : "JPEG", 
+                                 "deleteOriFile": 0, "resamplingAlgorithm":1},
         }
         if not os.path.isfile(self.configFile): # rewrite the config if not found
             fPtr = open(self.configFile, "w")
@@ -194,6 +199,7 @@ class UserPersonalization:
     def getPath(self):
         return self.configFile
 
+#### PYTHON NATIVE RELATED FUNCTION
 def verifyImageFile(filePath):
     """return nama file, ukuran awal, ekstensi file, format file, dukungan, tidak corrupt, bukan virus (0 uncheck 1 true 2 false)"""
     namaFile = ""
@@ -224,6 +230,8 @@ def verifyImageFile(filePath):
 
         imgPtr = Image.open(filePath)
         imgPtr.load()
+        if imgPtr:
+            imgPtr.close()
         bukanVirus = 1
 
         ###### Third Step adalah cek Format gambar ######
@@ -239,21 +247,19 @@ def verifyImageFile(filePath):
         else:
             ekstensiFile = "✗ (Tidak Didukung)"
 
-    except (IOError, SyntaxError) as e:
+    except (IOError, SyntaxError):
+        dukunganFile = 2
         tidakCorrupt = 2
 
-    except (Image.DecompressionBombWarning, Image.DecompressionBombError) as e:
+    except (Image.DecompressionBombWarning, Image.DecompressionBombError):
         bukanVirus = 2
 
-    if imgPtr:
-        imgPtr.close()
-        del imgPtr
     return (ekstensiFile, formatFile, dukunganFile, tidakCorrupt, bukanVirus, ukuranAwal, namaFile)
 
 def returnAllFileFromPath(dirs:list, conn):
     """Return a list of file from a dir, also verify is file exists and file in valid image extension"""
     allFile = []
-    validExt = [".jpg", ".jpeg", ".png"]
+    validExt = ['.jpg', '.jpeg', '.png', '.webp', 'mpo', '.heic', '.heif']
     for dir in dirs:
         for root, _, files in os.walk(dir):
             for file in files:
