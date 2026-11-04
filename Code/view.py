@@ -1,13 +1,16 @@
-from PySide6.QtWidgets import QAbstractItemView, QApplication, QComboBox, QFileDialog, QMainWindow, QMessageBox, QStyledItemDelegate, QTableView, QTreeView
-from PySide6.QtCore import QEvent, QModelIndex, QObject, QRegularExpression, QSize, QStandardPaths, QTimer, Qt, Signal
-from PySide6.QtGui import QIcon, QRegularExpressionValidator, QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import QAbstractItemView, QApplication, QComboBox, QFileDialog, QGraphicsScene, QGraphicsView, QMainWindow, QMessageBox, QStyledItemDelegate, QTableView, QTreeView
+from PySide6.QtCore import QEvent, QFile, QIODevice, QModelIndex, QObject, QRegularExpression, QSize, QStandardPaths, QThread, QTimer, Qt, Signal
+from PySide6.QtGui import QIcon, QImage, QPainter, QPixmap, QRegularExpressionValidator, QStandardItem, QStandardItemModel
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtSql import QSqlTableModel
-import sys, os, math, shiboken6, gc, subprocess, platform
+import sys, os, math, shiboken6, gc, subprocess, pillow_heif, io, tempfile
 from datetime import datetime
 from dataclasses import dataclass
-from typing import Literal, Callable, Any
+from typing import Literal, Callable
 from multiprocessing import Pool, cpu_count, Queue, Pipe, Process
+from PIL import Image
+from PIL.ImageQt import ImageQt
+from collections import Counter
 
 ######### Externally Managed Module #########
 from managedModule import backend, compressModule
@@ -16,10 +19,11 @@ from managedModule import backend, compressModule
 from assets import resources
 
 ######### Window ##########
-from windowModule import MainWindow, selectNewFile, PerfSettingCPU, CompressSettings
+from windowModule import MainWindow, selectNewFile, PerfSettingCPU, CompressSettings, pictureSample, compressConfirmation
 
 ######### Global Const #########
 APPID = "Compress Foto@hattaakim"
+pillow_heif.register_heif_opener()
 
 ######### Custom Class For Struct ########
 @dataclass
@@ -29,6 +33,12 @@ class allTableModelStruct:
     init_delegate: Callable
     enabledButton: list
     disabledButton: list
+
+@dataclass
+class saveFormatDictStruct:
+    """Struct dictionary untuk merangkap (index, format di QComboBox, format System)"""
+    formatComboBox: str
+    formatSystem: str
 
 ######### Internal Functions ##########
 def showInfo(parent, judul:str, 
@@ -91,7 +101,7 @@ def chooseFiles(parent, judul:str):
     downloadsPath = QStandardPaths.writableLocation(
         QStandardPaths.DownloadLocation
     )
-    validExt = [".jpg", ".jpeg", ".png"]
+    validExt = ['.jpg', '.jpeg', '.png', '.webp', 'mpo', '.heic', '.heif']
     fileDlg = QFileDialog(parent)
     fileDlg.setWindowModality(Qt.WindowModality.ApplicationModal)
     selectedFile, _ = fileDlg.getOpenFileNames(
@@ -136,6 +146,60 @@ def humanReadableSize(fileSize):
     return f"{fileSize / (1024**i):.2f} {units[i]}"
 
 ######### Custom Class For Qt6 Apps###########
+class ImgVerifyWorker(QThread):
+    """Worker class async untuk memverifikasi file foto pada halaman sample foto"""
+    imgSuccess = Signal(QImage, str, str, float)
+    imgError = Signal(str)
+
+    def __init__(self, imgPath):
+        super().__init__()
+        self.imgPath = imgPath
+        self.qtSupportedFormat = ['JPG', 'JPEG', 'PNG', 'WEBP']
+        self.qtSupportedExt = ['.jpg', '.jpeg', '.png', '.webp']
+
+    def run(self):
+        """Fungsi utama buat memverifikasi file foto"""
+        try:
+            fileExt = None
+            fileFormat = None
+            imgSize = 0.00
+            qImage = None
+
+            qFile = QFile(self.imgPath)
+            if not qFile.open(QIODevice.OpenModeFlag.ReadOnly):
+                self.imgError.emit(f"Gagal membuka file: {self.imgPath}")
+            imByteArray = qFile.readAll()
+            qFile.close()
+            qFile.deleteLater()
+            imPtr = imByteArray.data()
+
+            imgSize = os.path.getsize(self.imgPath)
+            fileExt = os.path.splitext(self.imgPath)[1].lower()
+            bufferIm = io.BytesIO(imPtr)
+
+            imgPtr = Image.open(bufferIm)
+            fileFormat = imgPtr.format
+            imgPtr.verify()
+            imgPtr.close()
+
+            if fileExt not in self.qtSupportedExt and fileFormat not in self.qtSupportedFormat:
+                imgPtr = Image.open(self.imgPath)
+                qImage = ImageQt(imgPtr)
+
+            else:
+                qImage = QImage(self.imgPath)
+
+            if qImage.isNull():
+                self.imgError.emit("Qt Gagal Memuat Gambar (format file tidak didukung)")
+
+            self.imgSuccess.emit(qImage, fileExt, fileFormat, imgSize)
+
+        except (Image.DecompressionBombWarning, Image.DecompressionBombError) as e:
+            self.imgError.emit(f"File gambar ditolak karena merupakan virus Decompression Bomb. [Kode Error: {e}]")
+        
+        except Exception as e:
+            self.imgError.emit(f"File rusak atau bukan file gambar yang valid. [Kode Error: {e}]")
+
 class TableAlignDelegate(QStyledItemDelegate):
     """Class untuk mengatur alignment tabel QTableView (bukan QSqlTableModel)"""
     def __init__(self, align=Qt.AlignmentFlag.AlignLeft, parent=None):
@@ -154,7 +218,7 @@ class InterpretTableDelegate(QStyledItemDelegate):
 
     def displayText(self, value, locale):
         fileStatusMap = {
-            0: "-", 1: "✔", 2: "✘"
+            0: "?", 1: "✔", 2: "✘"
         }
         return fileStatusMap.get(value, "Unsigned")
 
@@ -226,6 +290,7 @@ class TableViewDragnDropFilter(QObject):
         self.model = tModel
         self.sqlDb = dbPassthrought
         self.filterType = type
+        self.validExt = {'.jpg', '.jpeg', '.png', '.webp', 'mpo', '.heic', '.heif'}
 
     def eventFilter(self, watched, event):
         if watched == self.table:
@@ -241,12 +306,11 @@ class TableViewDragnDropFilter(QObject):
                         for url in event.mimeData().urls():
                             hasil = self.sqlDb.selectQuery(querySQL="SELECT fileDir from fileJobTable")
                             existsFile = {file[0] for file in hasil}
-                            validExt = {".jpg", ".jpeg", ".png"}
 
                             droppedFile = os.path.normpath(url.toLocalFile())
                             fileExt = os.path.splitext(droppedFile)[1].lower()
 
-                            if droppedFile not in existsFile and fileExt in validExt and os.path.isfile(droppedFile):
+                            if droppedFile not in existsFile and fileExt in self.validExt and os.path.isfile(droppedFile):
                                 bulkInsertData.append((os.path.basename(droppedFile), droppedFile, fileExt))
 
                         if bulkInsertData:
@@ -276,7 +340,8 @@ class TableViewDragnDropFilter(QObject):
                     return True
         return False
 
-class LineEditDragnDropFilter(QObject):
+class LineEditDragnDropFolder(QObject):
+    """Filter supaya user bisa drag and drop folder ke line edit"""
     def __init__(self, lineEdit, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -288,6 +353,7 @@ class LineEditDragnDropFilter(QObject):
             if event.type() == QEvent.Type.DragEnter:
                 if event.mimeData().hasUrls():
                     event.acceptProposedAction()
+                    return True
 
             elif event.type() == QEvent.Type.Drop:
                 if event.mimeData().hasUrls():
@@ -305,6 +371,7 @@ class LineEditDragnDropFilter(QObject):
         return False
 
 class SaberButtonFilter(QObject):
+    """Filter khusus untuk pushbutton agar ikonnya bisa berubah jadi ikon gradien saat dihover"""
     def __init__(self, saberPButton, parent=None):
         super().__init__(parent)
         self.saberPButton = saberPButton
@@ -320,7 +387,85 @@ class SaberButtonFilter(QObject):
             return False
         return False
 
+class LineEditDragnDropFile(QObject):
+    """Filter khusus untuk PCompressSampleTest supaya QLineEdit bisa
+    menerima drop berupa file gambar"""
+    def __init__(self, lineEdit, mainApp):
+        super().__init__(mainApp)
+        self.mainApp = mainApp
+        self.watchedLineEdit = lineEdit
+        self.validExt = {'.jpg', '.jpeg', '.png', '.webp', 'mpo', '.heic', '.heif'}
+
+    def eventFilter(self, watched, event):
+        if watched == self.watchedLineEdit:
+            if event.type() == QEvent.Type.DragEnter:
+                if event.mimeData().hasUrls():
+                    event.acceptProposedAction()
+                    return True
+
+            elif event.type() == QEvent.Type.Drop:
+                if event.mimeData().hasUrls():
+                    filePath = os.path.normpath(event.mimeData().urls()[0].toLocalFile())
+                    currentFilePath = self.watchedLineEdit.text()
+                    if filePath != currentFilePath and os.path.splitext(filePath)[1].lower() in self.validExt and os.path.isfile(filePath):
+                        self.watchedLineEdit.setText(filePath)
+                        self.mainApp.processBeforeImage()
+
+                    else:
+                        showInfo(self.mainApp, "Oops... Ada Kesalahan", "Ada beberapa potensi kesalahan:\n1. File yang Anda pilih sama dengan file sebelumnya\n2. Ekstensi file tidak didukung\n3. File tidak ada\nSilahkan verifikasi ulang ya!",
+                                 'info')
+                    event.acceptProposedAction()
+                    return True
+        return super().eventFilter(watched, event)
+
+class GraphicsViewScale(QObject):
+    """Filter supaya Graphics View yang berisi objek apapun bisa diresize pakai mouse"""
+    def __init__(self, graphicsView, parent=None):
+        super().__init__(parent)
+        self.currentGraphicsView = graphicsView
+        self.minScale = 0.01
+        self.maxScale = 100.0 
+
+    def manualZoomIn(self):
+        """Fungsi untuk melakukan zoom in pada graphics view menggunakan tombol"""
+        zoomFactor = 1.1
+        currentScale = self.currentGraphicsView.transform().m11()
+
+        if currentScale * zoomFactor > self.maxScale:
+            zoomFactor = self.maxScale / currentScale
+        self.currentGraphicsView.scale(zoomFactor, zoomFactor)
+
+    def manualZoomOut(self):
+        """Fungsi untuk melakukan zoom out pada graphics view menggunakan tombol"""
+        zoomFactor = 1/1.1
+        currentScale = self.currentGraphicsView.transform().m11()
+
+        if currentScale * zoomFactor < self.minScale:
+            zoomFactor = self.minScale / currentScale
+        self.currentGraphicsView.scale(zoomFactor, zoomFactor)
+
+    def eventFilter(self, watched, event):
+        if watched == self.currentGraphicsView:
+            if event.type() == QEvent.Type.Wheel:
+                delta = event.angleDelta().y()
+                if delta == 0:
+                    return False
+                
+                zoomFactor = math.pow(1.2, delta/120.0)
+                currentScale = self.currentGraphicsView.transform().m11()
+                newScale = currentScale*zoomFactor
+
+                if newScale < self.minScale:
+                    zoomFactor = self.minScale / currentScale
+                elif newScale > self.maxScale:
+                    zoomFactor = self.maxScale / currentScale
+                self.currentGraphicsView.scale(zoomFactor, zoomFactor)
+                return True
+            return False
+        return super().eventFilter(watched, event)
+
 class WindowManager:
+    """Window Manager Instance"""
     def __init__(self):
         self.allWindow = {}
         self.activeWindowKey = None
@@ -418,8 +563,8 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         #### Const For Table Headers and Delegate ####
         self.fotoBaruTableHeader = {"No.": 30, "Nama File": 90, "Lokasi File": 250, "Ekstensi File": 80}
         self.verifyFileTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 85, "Integritas File": 85, "File Aman": 65,"Ukuran Awal": 85}
-        self.compressedFileTableHeader = self.verifyFileTableHeader | {"Ukuran Akhir": 75, "Penghematan": 70, "Lokasi Simpan": 250, "Dihapus": 70}
-        self.photoRejectedTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 85, "Integritas File": 85, "File Aman": 65}
+        self.compressedFileTableHeader = self.verifyFileTableHeader | {"Ukuran Akhir": 75, "Penghematan": 85, "Status":70, "Lokasi Simpan": 250, "Dihapus": 70}
+        self.photoRejectedTableHeader = self.fotoBaruTableHeader | {"Format File": 75, "Dukungan File": 85, "Integritas File": 85, "File Aman": 65, "Tanggal Ditolak": 100}
         self.photoCancelledTableHeader = self.fotoBaruTableHeader | {"Tanggal Dihapus": 100}
         self.allTableHeader = [self.fotoBaruTableHeader, self.verifyFileTableHeader, self.compressedFileTableHeader,
                                self.photoRejectedTableHeader, self.photoCancelledTableHeader]
@@ -436,15 +581,25 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                                      "Foto ini telah ditolak sistem dan tidak dapat diproses lebih lanjut. Ingin menghapusnya dari daftar file? File asli Anda tidak akan terhapus.", 
                                      "Anda yakin untuk menghapus permanen file ini dari daftar file? File asli Anda tidak akan terpengaruh.")
 
-        #### CONST FOR Verify File Async Process ####
+        #### CONST FOR Universal Async Process ####
         self.pool = None
+        self.heavyThreadLoaderStatus = 0
+        
+        #### CONST FOR Verify File Async Process ####
         self.verifyFileIPC = Queue()
         self.timerCheckVFIPC = QTimer(self)
         self.timerUpdateVerifyTable = QTimer(self)
         self._bufferVerifikasiFile = []
         self.doneVerifyCount = 0
         self.verifyFileCount = 0
-        self.verifyFileThreadStatus = 0
+
+        #### CONST FOR Compress File Async Process ####
+        self.compressFileIPC = Queue()
+        self.timerCheckCompressIPC = QTimer(self)
+        self.timerUpdateCompressTable = QTimer(self)
+        self._bufferCompressFile = []
+        self.doneCompressionCount = 0
+        self.compressionFileCount = 0
 
         #### CONST The Table ####
         self.universalTableView.setModel(self.sqlTableModel)
@@ -483,6 +638,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.timerUpdateVerifyTable.timeout.connect(self.forceUpdateTable)
         self.timerCheckVFIPC.timeout.connect(self.checkQueueVerifyFile)
 
+        #### SIGNAL AND SLOT FOR startCompression
+        self.timerUpdateCompressTable.timeout.connect(self.forceUpdateTable)
+        self.timerCheckCompressIPC.timeout.connect(self.checkQueueStartCompression)
+
         #### SIGNAL AND SLOT for QAction::Performance Settings ####
         self.cpuThreadAuto.triggered.connect(self.cpuSetBySystem)
         self.cpuThreadUserSet.triggered.connect(self.cpuSetByUser)
@@ -497,6 +656,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.cancelDeleteSelected.clicked.connect(self.cancelDelete)
         self.startVerify.clicked.connect(self.startVerifyFile)
         self.compressSettings.clicked.connect(self.openCompressSettings)
+        self.startCompress.clicked.connect(self.startCompression)
         self.revealFile.clicked.connect(self.revealFileOnFE)
         self.reloadTable.clicked.connect(self.forceUpdateTable)
 
@@ -538,7 +698,9 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             key.installEventFilter(self.saberButtonFiler)
             key.setIcon(QIcon(listOfDir[0]))
             key.setIconSize(QSize(30,30))
-
+    
+    #####=====================APPS INTERNAL FUNCTION=========================######
+    #####===================== FUNGSI UNTUK NAVIGASI HALAMAN =========================#####
     def changePage(self, pageTitle, page:Literal[0,1,2,3,4]):
         """Function for change current page (pageNavigator, tablemodel, and button)"""
         pageNavFocusIndex = self.treeModel.match(self.treeModel.index(0,0), Qt.ItemDataRole.DisplayRole,
@@ -552,7 +714,6 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             self.pageNavigator.expand(targetIndex)
             self.pageNavigator.setCurrentIndex(targetIndex)
 
-        #### reset the sqlTableModel and universalTableView
         self.currentTableModel = page
         tableStruct = self.allTableModel[self.currentTableModel]
         self.universalTableView.setModel(None)
@@ -571,6 +732,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                 button.setEnabled(status)
 
     def pageNavigatorClicked(self, index:QModelIndex):
+        """Merespons ketika pengguna menekan tree page navigator untuk berpindah halaman"""
         itemText = index.data()
         pageIndexConst = 0
         pageIndex = None
@@ -585,21 +747,8 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
     def universalTableRowClicked(self, index):
         """Respons ketika pengguna menekan pada row spesifik"""
         self.currentRowClicked = index.row()
-    
-    def forceUpdateTable(self):
-        """Paksa update SQLTable apapun yang sedang online"""
-        hasil = self.sqlTableModel.select()
-        if hasil == True:
-            self.reloadTable.setText("Refresh Tabel\nSukses")
-        else:
-            self.reloadTable.setText("Refresh Tabel\nGagal")
-        QTimer.singleShot(1000, self.forceUpdateTableStatusReset)
 
-    def forceUpdateTableStatusReset(self):
-        """reset status reload tabel jadi nama tombol itu lagi"""
-        self.reloadTable.setText("Refresh\nTabel")
-
-    ##### PRIVATE FUNCTION RELY ON QAction::cpuCore #####
+    #####====================== FUNGSI KHUSUS DI QAction (CPU Settings) ========================#####
     def cpuSetBySystem(self):
         """Jumlah CPU diset oleh sistem"""
         self.cpuThreadAuto.setChecked(False)
@@ -616,7 +765,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         cpuSetWindow.show()
         cpuSetWindow.doneAction.connect(self.initUserSettings)
 
-    ##### PRIVATE FUNCTION RELY ON QAction::autoStart #####
+    #####===================== FUNGSI KHUSUS DI QAction (Auto Start) =============================######
     def enableAutoStart(self):
         """Menjalankan auto start"""
         self.autoStartOn.setChecked(False)
@@ -630,8 +779,25 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.startOnBoot.disableAutoStart()
         self.userPersonalization.editUserConfig('autoStart', 0, 0)
         self.initUserSettings()
+    
+    #####=========================== FUNGSI TOMBOL NEON (DIURUTKAN) =================================#####
+    #####=========================== FUNGSI TOMBOL TAMBAH FILE/FOLDER ===============================#####
+    def openAddJobWindow(self):
+        """Membuka jendela Add Job Window dan menambahkan trigger doneAction"""
+        _w = WM_.openWindow(PilihFileAtauFolder, self.sqlDb)
+        _w.show()
+        _w.doneAction.connect(self.closeAddJobWindow)
 
-    ##### PRIVATE FUNCTION RELY ON TOP LEFT QToolButton #####
+    def closeAddJobWindow(self):
+        """Trigger doneActionnya untuk memindahkan data dan reset table seamlessly"""
+        allQ = ["INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM newFileTable",
+                "DELETE FROM newFolderTable", "DELETE FROM newFileTable"]
+        for i, query in enumerate(allQ):
+            self.sqlDb.executeQuery(query)
+            if i == 1:
+                self.sqlTableModel.select()
+
+    #####=========================== FUNGSI TOMBOL TONG SAMPAH ===============================#####
     def deleteSelectedRow(self):
         """Saat pengguna menekan row dan memencet delete"""
         if self.currentRowClicked != None:
@@ -655,22 +821,8 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             self.universalTableView.clearSelection()
             self.universalTableView.clearFocus()
             self.sqlTableModel.select()
-
-    def openAddJobWindow(self):
-        """Membuka jendela Add Job Window dan menambahkan trigger doneAction"""
-        _w = WM_.openWindow(PilihFileAtauFolder, self.sqlDb)
-        _w.show()
-        _w.doneAction.connect(self.closeAddJobWindow)
-
-    def closeAddJobWindow(self):
-        """Trigger doneActionnya untuk memindahkan data dan reset table seamlessly"""
-        allQ = ["INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM newFileTable",
-                "DELETE FROM newFolderTable", "DELETE FROM newFileTable"]
-        for i, query in enumerate(allQ):
-            self.sqlDb.executeQuery(query)
-            if i == 1:
-                self.sqlTableModel.select()
-
+    
+    #####=================================== FUNGSI TOMBOL RECYCLE =================================#####
     def cancelDelete(self):
         """Saat pengguna menekan row dan memencet cancel delete (file restored)"""
         if self.currentRowClicked != None:
@@ -678,7 +830,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
 
             hasil = self.sqlDb.selectQuery(querySQL="SELECT fileDir FROM fileJobTable")
             allFileDir = {file[0] for file in hasil if os.path.isfile(file[0])}
-            if currentFileDir not in allFileDir:
+            if currentFileDir not in allFileDir and os.path.isfile(currentFileDir):
                 self.sqlDb.executeQuery(
                     querySQL="INSERT INTO fileJobTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM photoCancelledTable WHERE fileDir = ?",
                     params=[currentFileDir]
@@ -688,7 +840,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
 
             else:
                 showInfo(self, "Informasi: File Gagal Direstorasi",
-                        f"File {os.path.basename(currentFileDir)} sudah ada pada tabel 'Foto Baru'. Tidak dipindahkan untuk mencegah duplikasi file.", 'warning')
+                        f"File {os.path.basename(currentFileDir)} sudah ada pada tabel 'Foto Baru' atau file tersebut sudah dihapus. Lakukan verifikasi mandiri!", 'warning')
                 
             self.sqlDb.executeQuery(querySQL="DELETE FROM photoCancelledTable WHERE fileDir = ?", params=[currentFileDir])
             self.currentRowClicked = None
@@ -696,10 +848,11 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             self.universalTableView.clearFocus()
             self.sqlTableModel.select()
 
+    #####================================== FUNGSI TOMBOL MULAI VERIFIKASI FILE ==================================#####
     def startVerifyFile(self):
         """Mulai proses verifikasi file secara asinkron"""
         if self.currentTableModel == 0:
-            if self.verifyFileThreadStatus == 0:
+            if self.heavyThreadLoaderStatus == 0:
                 self.sqlDb.executeQuery(
                     querySQL="INSERT INTO verifyFileTable(fileName, fileDir, fileExt) SELECT fileName, fileDir, fileExt FROM fileJobTable"
                 )
@@ -712,9 +865,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                 allFileToProcess = [file[0] for file in hasil
                                     if os.path.isfile(file[0])]
                 if len(allFileToProcess) > 0:
+                    self.changePage("Siap Diproses", 1)
                     self.verifyFileCount = len(allFileToProcess)
                     self.pool = Pool(processes=self.numWorkers)
-                    self.verifyFileThreadStatus = 1
+                    self.heavyThreadLoaderStatus = 1
                     for file in allFileToProcess:
                         self.pool.apply_async(backend.verifyImageFile,
                                             args=(file,), callback=self.verifyFileIPC.put)
@@ -726,8 +880,8 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                             "Tidak ada file baru yang harus diverifikasi!", 'info')
             
             else:
-                showInfo(self, "Worker Thread Warning",
-                         "Verifikasi File Foto sedang berlangsung. Tidak bisa menjalankan proses asinkron lebih dari 2!",
+                showInfo(self, "CPU: (sambil berkeringat) 'Udah Bang...'",
+                         "Proses berat sedang berjalan dan memakan banyak sumber daya perangkat Anda. Kami tidak ingin menyebabkan perangkat Anda crash dengan menjalankan lebih dari 2 proses berat tersebut.",
                          'warning')
 
     def checkQueueVerifyFile(self):
@@ -748,6 +902,7 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             if self.doneVerifyCount == self.verifyFileCount:
                 self.timerCheckVFIPC.stop()
                 self.timerUpdateVerifyTable.stop()
+                self.pool.close()
                 if len(self._bufferVerifikasiFile) > 0:
                     self.sqlDb.executeQuery(
                     querySQL="UPDATE verifyFileTable SET fileExt = ?, fileFormat = ?, isSupported = ?, isNotCorrupted = ?, isNotVirus = ?, fileSize0 = ? WHERE fileName = ?",
@@ -756,13 +911,114 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
                     self._bufferVerifikasiFile.clear()
                 self.startVerify.setText("Verifikasi\nFile")
                 self.doneVerifyCount = 0
-                self.verifyFileThreadStatus = 0 
-                self.forceUpdateTable()
+                self.heavyThreadLoaderStatus = 0 
+                QTimer.singleShot(1000, self.forceUpdateTable)
 
+    #####========================================== FUNGSI TOMBOL BUKA PENGATURAN KOMPRESI ==========================================#####
     def openCompressSettings(self):
+        """Buka pengaturan kompresi"""
         window = WM_.openWindow(PengaturanKompresi, self.userPersonalization)
         window.show()
 
+    #####========================================== FUNGSI TOMBOL KOMPRESI FILE ===========================================#####
+    def startCompression(self):
+        """Fungsi untuk menampilkan summary kompresi sebelum sistem memulai"""
+        if self.heavyThreadLoaderStatus == 0:
+            _compressconfirm = WM_.openWindow(CompressConfirmation, self.userPersonalization, self.sqlDb)
+            _compressconfirm.show()
+            _compressconfirm.doneAction.connect(self.compressionJob)
+
+        else:
+            showInfo(self, "CPU: (keringatan) 'Udah Bang.. jangan'",
+                "Proses berat sedang berjalan dan memakan banyak sumber daya perangkat Anda. Kami tidak ingin menyebabkan perangkat Anda crash dengan menjalankan lebih dari 2 proses berat tersebut.",
+                'warning')
+
+    def compressionJob(self):
+        """Mulai kompresi file"""
+        if self.currentTableModel == 1:
+            if self.heavyThreadLoaderStatus == 0:
+                self.sqlDb.executeQuery(
+                    querySQL="""INSERT INTO compressedFileTable(fileName, fileDir, fileExt, fileFormat, isSupported, isNotCorrupted, isNotVirus, fileSize0)
+SELECT fileName, fileDir, fileExt, fileFormat, isSupported, isNotCorrupted, isNotVirus, fileSize0 FROM verifyFileTable
+WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"""
+                )
+                self.sqlDb.executeQuery(
+                    querySQL="""INSERT INTO photoRejectedTable(fileName, fileDir, fileExt, fileFormat, isSupported, isNotCorrupted, isNotVirus)
+SELECT fileName, fileDir, fileExt, fileFormat, isSupported, isNotCorrupted, isNotVirus FROM verifyFileTable
+WHERE isSupported != 1 OR isNotCorrupted != 1 OR isNotVirus != 1"""
+                )
+                hariIni = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                self.sqlDb.executeQuery(
+                    querySQL="UPDATE photoRejectedTable SET dateRejected = ?",
+                    params=(hariIni,)
+                )
+                self.sqlDb.executeQuery(
+                    querySQL="DELETE FROM verifyFileTable"
+                )
+                hasil = self.sqlDb.selectQuery(
+                    querySQL="SELECT fileDir FROM compressedFileTable"
+                )
+                allFileToCompress = [file[0] for file in hasil
+                                     if os.path.isfile(file[0])]
+                if len(allFileToCompress) > 0:
+                    self.compressionFileCount = len(allFileToCompress)
+                    mpSettings = 1_000_000*self.userPersonalization.getUserConfig('compressSettings',0)
+                    photoQualitySettings = self.userPersonalization.getUserConfig('compressSettings',1)
+                    saveLocation = self.userPersonalization.getUserConfig('compressSettings',2)
+                    saveFormat = self.userPersonalization.getUserConfig('compressSettings',3)
+                    deleteOriFile = self.userPersonalization.getUserConfig('compressSettings', 4)
+                    resamplingAlgorithm = self.userPersonalization.getUserConfig('compressSettings', 5)
+
+                    self.changePage("Selesai Diproses", 2)
+                    self.heavyThreadLoaderStatus = 1
+                    self.pool = Pool(processes=self.numWorkers)
+                    for file in allFileToCompress:
+                        self.pool.apply_async(compressModule.compressImage,
+                                              args=(file, saveLocation, resamplingAlgorithm,
+                                                    mpSettings, photoQualitySettings, saveFormat,
+                                                    bool(deleteOriFile)), callback=self.compressFileIPC.put)
+                    self.timerCheckCompressIPC.start(100)
+                    self.timerUpdateVerifyTable.start(1000)
+
+                else:
+                    showInfo(self, "Oops.. Kami Menemukan Sesuatu",
+                             "Tidak ada file yang siap untuk dikompresi. Silahkan cek kembali, ya!", 'info')
+
+            else:
+                showInfo(self, "CPU: (keringatan) 'Udah Bang.. jangan'",
+                         "Proses berat sedang berjalan dan memakan banyak sumber daya perangkat Anda. Kami tidak ingin menyebabkan perangkat Anda crash dengan menjalankan lebih dari 2 proses berat tersebut.",
+                         'warning')
+
+    def checkQueueStartCompression(self):
+        """Fungsi untuk mengecek IPC dari hasil async startCompression"""
+        while not self.compressFileIPC.empty():
+            hasil = self.compressFileIPC.get()
+            self._bufferCompressFile.append(hasil)
+            self.doneCompressionCount += 1
+            if len(self._bufferCompressFile) >= 5:
+                self.sqlDb.executeQuery(
+                    querySQL="update compressedFileTable SET compressStatus = ?, fileSize1 = ?, sizeReduced = ?, savePath = ?, isDeleted = ? WHERE fileName = ?", 
+                    params=self._bufferCompressFile, isMultipleParams=True
+                )
+                self._bufferCompressFile.clear()
+            self.startCompress.setText(f"Mengompresi:\n{self.doneCompressionCount}/{self.compressionFileCount} File")
+
+            if self.doneCompressionCount == self.compressionFileCount:
+                self.timerCheckCompressIPC.stop()
+                self.timerUpdateCompressTable.stop()
+                self.pool.close()
+                if len(self._bufferCompressFile) > 0:
+                    self.sqlDb.executeQuery(
+                        querySQL="update compressedFileTable SET compressStatus = ?, fileSize1 = ?, sizeReduced = ?, savePath = ?, isDeleted = ? WHERE fileName = ?", 
+                        params=self._bufferCompressFile, isMultipleParams=True
+                    )
+                    self._bufferCompressFile.clear()
+                self.startCompress.setText("Mulai\nKompresi")
+                self.doneCompressionCount = 0
+                self.heavyThreadLoaderStatus = 0
+                QTimer.singleShot(1000, self.forceUpdateTable)
+    
+    #####===================================== FUNGSI TOMBOL TUNJUKKAN FILE ====================================#####
     def revealFileOnFE(self):
         """Saat pengguna menekan row dan memencet reveal file 
         'JADI GWEJ LUPA FILE APA SIH YANG GWEH MASUKIN?'"""
@@ -791,6 +1047,20 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
             self.currentRowClicked = None
             self.universalTableView.clearSelection()
             self.universalTableView.clearFocus()
+
+    #####============================= FUNGSI REFRESH TABLE ==========================#####
+    def forceUpdateTable(self):
+        """Paksa update SQLTable apapun yang sedang online"""
+        hasil = self.sqlTableModel.select()
+        if hasil == True:
+            self.reloadTable.setText("Refresh Tabel\nSukses")
+        else:
+            self.reloadTable.setText("Refresh Tabel\nGagal")
+        QTimer.singleShot(1000, self.forceUpdateTableStatusReset)
+
+    def forceUpdateTableStatusReset(self):
+        """reset status reload tabel jadi nama tombol itu lagi"""
+        self.reloadTable.setText("Refresh\nTabel")
 
     ##### DELEGATE TABLE INIT (FOR GUI) ######
     ##### PUT AT THE BOTTOM BECAUSE OF IT'S CRITICAL WASN'T VERY MATTER #####
@@ -828,9 +1098,10 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         for i in range(5,8):
             self.universalTableView.setItemDelegateForColumn(i, self.delegateTableInterpret)
         for i in range(8,11):
-            self.universalTableView.setItemDelegateForColumn(i, self.delegateFileSize)  
-        for i in range(11,13):
-            self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+            self.universalTableView.setItemDelegateForColumn(i, self.delegateFileSize) 
+        self.universalTableView.setItemDelegateForColumn(11, self.delegateTableInterpret) 
+        self.universalTableView.setItemDelegateForColumn(12, self.delegateTableCenterAlign)
+        self.universalTableView.setItemDelegateForColumn(13, self.delegateTableInterpret) 
 
     ##### PAGE 4: photoRejectedTable #####
     def photoRejectedTableDelegateInit(self):
@@ -853,6 +1124,85 @@ class HomeScreen(QMainWindow, MainWindow.Ui_MainWindow):
         self.universalTableView.setItemDelegateForColumn(2, self.delegateTableLeftAlign)
         for i in range(3,5):
             self.universalTableView.setItemDelegateForColumn(i, self.delegateTableCenterAlign)
+
+#### <!---------------------- MENU BAR WINDOW ---------------------------!> ####
+#### Window yang bisa diakses lewat menu bar ####
+class CPUSettings(QMainWindow, PerfSettingCPU.Ui_MainWindow):
+    doneAction = Signal()
+    def __init__(self, uPInstancePassThrought:backend.UserPersonalization):
+        super().__init__()
+        self.setupUi(self)
+
+        #### CONST for Window
+        self.appIcon = ':/ai_appDefaultIcon'
+        self.userPersonalization = uPInstancePassThrought
+        self.maxCore = cpu_count()
+
+        #### Init the first run
+        self.initGUI()
+
+        #### Signal and Slots
+        self.userDefiniedCPU.valueChanged.connect(self.onUserChangeCPU)
+        self.simpan.clicked.connect(self.onSettingsSaved)
+        self.batal.clicked.connect(self.closeWindow)
+
+    def initGUI(self):
+        """Mempersiapkan komponen GUI (Max CPU Settings, dll) agar UI Siap Dipakai"""
+        self.setWindowTitle("Pengaturan CPU")
+        self.setWindowIcon(QIcon(self.appIcon))
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        self.cpuAvailable.setReadOnly(True)
+        self.cpuAvailable.setText(f"{self.maxCore} Tersedia")
+        self.userDefiniedCPU.setMaximum(self.maxCore)
+        self.userDefiniedCPU.setMinimum(1)
+        self.userDefiniedCPU.setSingleStep(1)
+        self.userDefiniedCPU.setValue(max(1, self.maxCore-2))
+
+    def onUserChangeCPU(self, val):
+        """Respons khusus ketika user mengubah jumlah CPU Mutlak yang digunakan di range yang diluar nalar"""
+        if val >= self.maxCore:
+            showInfo(self, "Pengaturan Tidak Valid",
+                     "Maaf, kami tidak diizinkan untuk memakai seluruh " \
+                     "Core CPU perangkat Anda untuk mencegah instabilitas sistem! Perangkat Anda membutuhkan minimal 1 Core untuk tetap berfungsi secara stabil.",
+                     'warning')
+            self.userDefiniedCPU.setValue(max(1, self.maxCore-1))
+
+        elif val <= 2:
+            jawaban = bringQuestion(self, "Menggunakan CPU Minimum",
+                                    f"Anda yakin untuk memakai hanya {val} dari {self.maxCore} jumlah CPU yang tersedia? Performa aplikasi (seperti ketika melakukan verifikasi file/kompresi) mungkin menurun. Jika perangkat Anda memiliki core yang terbatas, maka ini bukan masalah.",
+                                    'question', 'yes', 'no')
+            if jawaban != QMessageBox.Yes:
+                self.userDefiniedCPU.setValue(max(1, val+1))
+
+    def onSettingsSaved(self):
+        """Simpan pengaturan yang dibuat oleh pengguna"""
+        self.userDefiniedCPU.setReadOnly(True)
+        self.userPersonalization.editUserConfig('perfSettings', 0, 1)
+        self.userPersonalization.editUserConfig('perfSettings', 1, self.userDefiniedCPU.value())
+        self.doneAction.emit()
+        self.closeWindow(True)
+
+    def closeWindow(self, withOutQuestioning=False):
+        """Tutup jendela, dengan flag withOutQuestioning buat (ignore question)"""
+        if withOutQuestioning:
+            self.closeWindowAction()
+
+        else:
+            jawaban = bringQuestion(self, "Konfirmasi Tutup Jendela",
+                                    "Anda yakin ingin menutup jendela ini? Segala data yang tidak tersimpan akan hilang.",
+                                    'question', 'yes', 'no')
+            if jawaban == QMessageBox.Yes:
+                self.closeWindowAction()
+
+    def closeWindowAction(self):
+        """Fungsi untuk menutup jendela CPUSettings melalui WindowManager"""
+        WM_.closeWindow(CPUSettings)
+
+    def closeEvent(self, event):
+        """Mencegah penutupan tidak disengaja melalui tombol silang jendela"""
+        self.closeWindow()
+        event.ignore()
 
 #### <!--------------------------- Dynamic Button Window ------------------------------!>
 #### Window buat QToolButton yang kalau tombolnya dihover, tombolnya nyala
@@ -878,7 +1228,7 @@ class PilihFileAtauFolder(QMainWindow, selectNewFile.Ui_MainWindow):
         }
 
         #### CONST for FileType ####
-        self.validExt = {".jpg", ".jpeg", ".png"}
+        self.validExt = {'.jpg', '.jpeg', '.png', '.webp', 'mpo', '.heic', '.heif'}
 
         #### CONST FOR QSqlTableModel ####
         self.sqlDb = dbPassThrough
@@ -1227,18 +1577,42 @@ class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
 
         #### Window Const
         self.appIcon = ':/ai_appDefaultIcon'
+        self.chooseDirIcon = ':/cs_chooseFolderIcon'
+        self.recommendedSettingsIcon = ':/cs_recommenddedSettingsIcon'
+        self.openSamplePhotoIcon = ':/cs_openSamplePhotoIcon'
+
         self.userPersonalization = UPPassThrough
         self.defaultSavePath = os.path.join(os.environ["USERPROFILE"], "Downloads")
-        self.allSettings = [self.megaPixel, self.photoQuality, self.chooseDir, self.recommendedSettings]
-        self.lineEditFilter = LineEditDragnDropFilter(self.saveLocation, self)
+        self.allSettings = [self.megaPixel, self.photoQuality, self.chooseDir, self.recommendedSettings, 
+                            self.deleteOriginalFile, self.saveFormat, self.resamplingAlgorithm]
+        self.lineEditFilter = LineEditDragnDropFolder(self.saveLocation, self)
+
+        self.allResamplingTip = {
+            0: "Metode paling dasar dan cepat. Hasil gambar sangat tajam secara kasar dan memunculkan efek kotak-kotak (pixelated). Sangat ideal untuk pixel art, elemen UI, atau kebutuhan komputasi instan.",
+            1: "Algoritma standar industri. Mempertahankan detail mikroskopis dengan ketajaman yang sangat tinggi. Menjadi pilihan utama untuk memperbesar (upscaling), tetapi memiliki kelemahan berupa ringing (garis halo).",
+            2: "Metode yang meratakan warna sehingga menghasilkan batas bergerigi dengan efek samping sedikit kabur (soft/blur). Hasilnya sedikit lebih baik dari algoritma Nearest.",
+            3: "Standar umum fotografi. Gambar dihasilkan dengan warna yang lebih halus dan mendetail dibanding Bilinear. Pilihan tengah yang sangat baik (lebih lambat dari Bilinear, tetapi lebih cepat dari Lanczos).",
+            4: "Algoritma untuk mengecilkan gambar (downscaling). Jika digunakan untuk memperbesar gambar (upscaling), hasilnya akan terlihat pecah seperti algoritma Nearest",
+            5: "Algoritma unggulan untuk mengecilkan gambar karena kemampuannya untuk mempertahankan ketajaman garis, namun tetap beroperasi dengan kecepatan yang nyaris sama cepatnya dengan Bilinear.",
+            6: "Pesaing berat Lanczos untuk membasmi artefak ringing meskipun menghasilkan beban komputasi yang lebih berat. Menghasilkan gambar yang sangat tajam dan natural secara visual dengan performa multithreading CPU yang sangat efisien.",
+            7: "Algoritma terbaik dengan beban komputasi yang paling berat, tetapi dapat mematikan seluruh artefak ringing tanpa menipu mata dengan kontras buatan. Ideal untuk citra saintifik, medis, atau arsip penting."
+        }
+        self.allSaveFormat = (
+            "JPEG", "JPG", "JPEG2000", "PNG",
+            "HEIF", "HEIC", "WEBP", "BMP",
+            "TIFF", "ICO", "AVIF"
+        )
 
         #### Init Code
         self.initGUI()
         self.initUPSettings()
+        self.onResamplingChanged()
 
         #### Signal & Slots
         self.chooseDir.clicked.connect(self.chooseSaveFolder)
         self.deleteOriginalFile.clicked.connect(self.onDeleteFileCheck)
+        self.resamplingAlgorithm.currentIndexChanged.connect(self.onResamplingChanged)
+        self.openSamplePhoto.clicked.connect(self.samplePhoto)
         self.recommendedSettings.clicked.connect(self.useRecommendedSettings)
         self.simpanDanTutup.clicked.connect(self.commitAllSettings)
         self.batal.clicked.connect(lambda: self.closeWindow())
@@ -1248,6 +1622,11 @@ class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
         self.setWindowIcon(QIcon(self.appIcon))
         self.setWindowTitle("Pengaturan Kompresi")
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
+
+        self.chooseDir.setIcon(QIcon(self.chooseDirIcon))
+        self.recommendedSettings.setIcon(QIcon(self.recommendedSettingsIcon))
+        self.openSamplePhoto.setIcon(QIcon(self.openSamplePhotoIcon))
+
         self.saveLocation.setReadOnly(True)
         self.saveLocation.installEventFilter(self.lineEditFilter)
     
@@ -1255,11 +1634,14 @@ class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
         """Persiapkan pengaturan pengguna yang sebelumnya (kalau ada)"""
         self.megaPixel.setValue(self.userPersonalization.getUserConfig('compressSettings',0))
         self.photoQuality.setValue(self.userPersonalization.getUserConfig('compressSettings',1))
-        self.deleteOriginalFile.setChecked(bool(self.userPersonalization.getUserConfig('compressSettings',3)))
+        self.deleteOriginalFile.setChecked(bool(self.userPersonalization.getUserConfig('compressSettings',4)))
+        self.saveFormat.setCurrentIndex(self.allSaveFormat.index(self.userPersonalization.getUserConfig('compressSettings', 3)))
+        self.resamplingAlgorithm.setCurrentIndex(self.userPersonalization.getUserConfig('compressSettings', 5))
 
         if self.userPersonalization.getUserConfig('compressSettings',2) == "default" or self.defaultSavePath:
             self.saveLocation.setText(self.defaultSavePath)
             self.defaultFolderToolTip()
+
         else:
             self.saveLocation.setText(self.userPersonalization.getUserConfig('compressSettings',2))
             self.saveLocation.setToolTip("")
@@ -1290,6 +1672,12 @@ class PengaturanKompresi(QMainWindow, CompressSettings.Ui_MainWindow):
         else:
             self.deleteOriginalFile.setChecked(False)
     
+    def onResamplingChanged(self):
+        """Respons saat pengguna mengubah mode resampling"""
+        self.resamplingDesc.setText(
+            self.allResamplingTip[self.resamplingAlgorithm.currentIndex()]
+        )
+    
     def useRecommendedSettings(self):
         """Paling direkomendasikan hehe"""
         _confirm = bringQuestion(self, "Pengaturan Akan Ditimpa",
@@ -1303,11 +1691,15 @@ Konfirmasi YES bila Anda yakin!""", 'question', 'yes', 'no')
             self.photoQuality.setValue(85)
             self.deleteOriginalFile.setChecked(False)
 
+    def samplePhoto(self):
+        _wmInstanceOpenWindow = WM_.openWindow(PCompressSampleTest)
+        _wmInstanceOpenWindow.show()
+
     def commitAllSettings(self):
         """Simpan semua pengaturan pengguna"""
         for qObject in self.allSettings:
             qObject.setDisabled(True)
-        getSettings = (self.megaPixel.value(), self.photoQuality.value(), self.saveLocation.text(), int(self.deleteOriginalFile.isChecked()))
+        getSettings = (self.megaPixel.value(), self.photoQuality.value(), self.saveLocation.text(), self.saveFormat.currentText(), int(self.deleteOriginalFile.isChecked()), self.resamplingAlgorithm.currentIndex())
         for i, val in enumerate(getSettings):
             self.userPersonalization.editUserConfig('compressSettings', i, val)
         self.closeWindow(isQuestioned=False)
@@ -1332,83 +1724,322 @@ Konfirmasi YES bila Anda yakin!""", 'question', 'yes', 'no')
         event.ignore()
         self.closeWindow()
 
-#### <!---------------------- MENU BAR WINDOW ---------------------------!> ####
-#### Window yang bisa diakses lewat menu bar ####
-class CPUSettings(QMainWindow, PerfSettingCPU.Ui_MainWindow):
-    doneAction = Signal()
-    def __init__(self, uPInstancePassThrought:backend.UserPersonalization):
+class PCompressSampleTest(QMainWindow, pictureSample.Ui_MainWindow):
+    def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        #### CONST for Window
-        self.appIcon = ':/ai_appDefaultIcon'
-        self.userPersonalization = uPInstancePassThrought
-        self.maxCore = cpu_count()
+        #### Window CONST
+        self.allScaleButton = {0: [self.beforeScaleUp, self.afterScaleUp],
+                               1: [self.beforeScaleDown, self.afterScaleDown]}
+        self.allUneditableLineEdit = [self.fileExt, self.fileFormat, self.compressStatus, 
+                                      self.fileSize0, self.fileSize1, self.sizeReduced]
 
-        #### Init the first run
+        #### Line Edit Below Graphics View
+        self.samplePhotoDragDrop = LineEditDragnDropFile(self.samplePhotoDir, self)
+        self.samplePhotoDir.setReadOnly(True)
+        self.samplePhotoDir.setAcceptDrops(True)
+        self.samplePhotoDir.installEventFilter(self.samplePhotoDragDrop)
+
+        #### GRAPHICS VIEW AND SCENE CONST
+        self.allImageView = [self.beforeImage, self.afterImage]
+        for graphicsView in self.allImageView:
+            graphicsView.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform)
+            graphicsView.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            graphicsView.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+
+        self.beforeImageScale = GraphicsViewScale(self.beforeImage, self)
+        self.beforeScene = QGraphicsScene(self)
+        self.beforeImage.setScene(self.beforeScene)
+        self.beforeCurrentImage = None
+        self.beforeImage.installEventFilter(self.beforeImageScale)
+
+        self.afterImageScale = GraphicsViewScale(self.afterImage, self)
+        self.afterScene = QGraphicsScene(self)
+        self.afterImage.setScene(self.afterScene)
+        self.afterCurrentImage = None
+        self.afterImage.installEventFilter(self.afterImageScale)
+
+        #### Concurrent Process (async) for pictureSample upload
+        self.imgVerifyWorker = None
+        self.imgVerifyErrorList = []
+        
+        #### Timer and MultiProcessing for processRealPicture CONST
+        self.pConn, self.cConn = Pipe()
+        self.compressSampleMP = None
+        self.T_fetchSampleResult = QTimer(self)
+        self.sampleResultTempDir = None
+
+        self.currentPos = 0
+        self.T_compressStatusAnim = QTimer(self)
+        self.allInteractable = [self.choosePhotoFile, self.samplePhotoDir, 
+                                 self.megaPixel, self.photoQuality, self.resamplingAlgorithm, self.startCompressSimulation]
+
+        #### Init Code
         self.initGUI()
 
         #### Signal and Slots
-        self.userDefiniedCPU.valueChanged.connect(self.onUserChangeCPU)
-        self.simpan.clicked.connect(self.onSettingsSaved)
-        self.batal.clicked.connect(self.closeWindow)
+        self.T_fetchSampleResult.timeout.connect(self.checkPipeCompressSample)
+        self.T_compressStatusAnim.timeout.connect(self.compressStatusAnim)
+        self.choosePhotoFile.clicked.connect(self.chooseSamplePhoto)
+        self.beforeScaleUp.clicked.connect(self.beforeImageScale.manualZoomIn)
+        self.beforeScaleDown.clicked.connect(self.beforeImageScale.manualZoomOut)
+        self.afterScaleUp.clicked.connect(self.afterImageScale.manualZoomIn)
+        self.afterScaleDown.clicked.connect(self.afterImageScale.manualZoomOut)
+        self.startCompressSimulation.clicked.connect(self.startCompressSample)
 
     def initGUI(self):
-        """Mempersiapkan komponen GUI (Max CPU Settings, dll) agar UI Siap Dipakai"""
-        self.setWindowTitle("Pengaturan CPU")
-        self.setWindowIcon(QIcon(self.appIcon))
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        """Mempersiapkan UI agar siap ditampilkan dan digunakan oleh pengguna"""
+        self.setWindowTitle("Sample Kompresi Foto")
+        self.setWindowIcon(QIcon(":/ai_appDefaultIcon"))
+        self.resamplingAlgorithm.setCurrentIndex(1)
 
-        self.cpuAvailable.setReadOnly(True)
-        self.cpuAvailable.setText(f"{self.maxCore} Tersedia")
-        self.userDefiniedCPU.setMaximum(self.maxCore)
-        self.userDefiniedCPU.setMinimum(1)
-        self.userDefiniedCPU.setSingleStep(1)
-        self.userDefiniedCPU.setValue(max(1, self.maxCore-2))
+        for key, buttons in self.allScaleButton.items():
+            if key == 0:
+                for button in buttons: 
+                    button.setIcon(QIcon(":/is_scaleUp"))
 
-    def onUserChangeCPU(self, val):
-        """Respons khusus ketika user mengubah jumlah CPU Mutlak yang digunakan di range yang diluar nalar"""
-        if val >= self.maxCore:
-            showInfo(self, "Pengaturan Tidak Valid",
-                     "Maaf, kami tidak diizinkan untuk memakai seluruh Core CPU perangkat Anda untuk mencegah instabilitas sistem! Perangkat Anda membutuhkan minimal 1 Core untuk tetap berfungsi secara stabil.",
-                     'warning')
-            self.userDefiniedCPU.setValue(max(1, self.maxCore-1))
+            elif key == 1:
+                for button in buttons:
+                    button.setIcon(QIcon(":/is_scaleDown"))
+        
+        for qButton in self.allUneditableLineEdit:
+            qButton.setReadOnly(True)
 
-        elif val <= 2:
-            jawaban = bringQuestion(self, "Menggunakan CPU Minimum",
-                                    f"Anda yakin untuk memakai hanya {val} dari {self.maxCore} jumlah CPU yang tersedia? Performa aplikasi (seperti ketika melakukan verifikasi file/kompresi) mungkin menurun. Jika perangkat Anda memiliki core yang terbatas, maka ini bukan masalah.",
-                                    'question', 'yes', 'no')
-            if jawaban != QMessageBox.Yes:
-                self.userDefiniedCPU.setValue(max(1, val+1))
+    def chooseSamplePhoto(self):
+        """Memungkinkan pengguna untuk memilih sample foto menggunakan file dialog"""
+        foto = chooseFiles(self, "Pilih Sebuah Foto untuk Dijadikan Sampel")
+        if foto != None:
+            self.samplePhotoDir.setText(foto[0])
+            self.processBeforeImage()
 
-    def onSettingsSaved(self):
-        """Simpan pengaturan yang dibuat oleh pengguna"""
-        self.userDefiniedCPU.setReadOnly(True)
-        self.userPersonalization.editUserConfig('perfSettings', 0, 1)
-        self.userPersonalization.editUserConfig('perfSettings', 1, self.userDefiniedCPU.value())
-        self.doneAction.emit()
-        self.closeWindow(True)
+    def processBeforeImage(self):
+        """Algoritma untuk berkomunikasi dengan QThread untuk memverifikasi file gambar"""
+        self.imgVerifyWorker = ImgVerifyWorker(self.samplePhotoDir.text())
+        self.imgVerifyWorker.imgSuccess.connect(self.imgVerifyWorker_onSuccess)
+        self.imgVerifyWorker.imgError.connect(self.imgVerifyWorker_onError)
+        self.imgVerifyWorker.finished.connect(self.imgVerifyWorker_onFinished)
+        self.imgVerifyWorker.start()
 
-    def closeWindow(self, withOutQuestioning=False):
-        """Tutup jendela, dengan flag withOutQuestioning buat (ignore question)"""
-        if withOutQuestioning:
-            self.closeWindowAction()
+    def imgVerifyWorker_onSuccess(self, qImage, fileExt, fileFormat, imgSize):
+        """Fungsi yang ditrigger imgVerifyWorker saat 
+        verifyRealPicture mengalami imgSuccess"""
+        pixMapPtr = QPixmap.fromImage(qImage)
+        if self.beforeCurrentImage != None:
+            self.beforeScene.removeItem(self.beforeCurrentImage)
+        self.beforeCurrentImage = self.beforeScene.addPixmap(pixMapPtr)
+        self.beforeImage.fitInView(self.beforeImage.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+        self.fileSize0.setText(humanReadableSize(imgSize))
+        self.fileExt.setText(fileExt)
+        self.fileFormat.setText(fileFormat)
+        self.compressStatus.setText("Belum Dilakukan!")
+        self.fileSize1.setText("-")
+        self.sizeReduced.setText("-")
+    
+    def imgVerifyWorker_onError(self, errMsg):
+        """Fungsi yang ditrigger oleh ImgVerifyWorker saat verifyRealPicture
+        mengalami imgError"""
+        self.imgVerifyErrorList.append(errMsg)
+
+    def imgVerifyWorker_onFinished(self):
+        """Fungsi yang ditrigger ImgVerifyWorker saat proses concurrent
+        berhasil dan exit (untuk menghapus gambar lama dan set yang baru)"""
+        if not len(self.imgVerifyErrorList) <= 0:
+            _baseText = "Ups, gambar yang Anda pilih memicu kesalahan sebagai berikut:\n"
+            for i, errMsg in enumerate(self.imgVerifyErrorList,1):
+                _baseText = _baseText + f"{i}. {errMsg}.\n"
+            showInfo(self, "Kami Ingin Menyampaikan Kabar Buruk", _baseText, 'error')
+            self.imgVerifyErrorList.clear()
+
+    def startCompressSample(self):
+        """Menjalankan rangkaian proses kompresi normal pada secondary thread"""
+        beforeImDir = self.samplePhotoDir.text()
+        if len(beforeImDir) > 0 and os.path.isfile(beforeImDir):
+            self.T_fetchSampleResult.start(500)
+            self.T_compressStatusAnim.start(500)
+            for qObject in self.allInteractable:
+                qObject.setDisabled(True)
+            self.sampleResultTempDir = tempfile.TemporaryDirectory(prefix="compressFile_", suffix="temp")
+            self.compressSampleMP = Process(
+                target=compressModule.compressImageHelper,
+                args=(beforeImDir, self.sampleResultTempDir.name, self.resamplingAlgorithm.currentIndex(),
+                    self.megaPixel.value()*1000000, self.photoQuality.value(), self.cConn)
+            )
+            self.compressSampleMP.start()
+        
         else:
-            jawaban = bringQuestion(self, "Konfirmasi Tutup Jendela",
-                                    "Anda yakin ingin menutup jendela ini? Segala data yang tidak tersimpan akan hilang.",
-                                    'question', 'yes', 'no')
-            if jawaban == QMessageBox.Yes:
-                self.closeWindowAction()
+            showInfo(self, "Foto Belum Dipilih/Tidak Ada", "Sepertinya Anda belum memilih file foto apapun untuk dijadikan sampel kompresi atau file foto yang Anda pilih tidak tersedia. Silahkan cek kembali!", 'info')
 
-    def closeWindowAction(self):
-        """Fungsi untuk menutup jendela CPUSettings melalui WindowManager"""
-        WM_.closeWindow(CPUSettings)
+    def checkPipeCompressSample(self):
+        """Cek apakah foto sudah selesai dikompresi apa belum"""
+        if self.pConn.poll():
+            compressStatus, fileSize1, sizeSaved, outPath, _, _ = self.pConn.recv()
+            self.T_fetchSampleResult.stop()
+            self.T_compressStatusAnim.stop()
+
+            if self.compressSampleMP.is_alive():
+                self.compressSampleMP.kill()
+
+            if compressStatus == 1:
+                if self.afterCurrentImage != None:
+                    self.afterScene.removeItem(self.afterCurrentImage)
+                self.afterCurrentImage = self.afterScene.addPixmap(QPixmap(outPath))
+                self.afterImage.fitInView(self.afterImage.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+
+                self.compressStatus.setText("Kompresi Berhasil")
+                self.fileSize1.setText(humanReadableSize(fileSize1))
+                self.sizeReduced.setText(humanReadableSize(sizeSaved))
+
+            elif compressStatus == 2:
+                self.compressStatus.setText("Kompresi Gagal!")
+
+            else:
+                self.compressStatus.setText("Terjadi Kesalahan!")
+
+            self.sampleResultTempDir.cleanup()
+            for qObject in self.allInteractable:
+                qObject.setDisabled(False)
+    
+    def postCompressSample(self):
+        """Re-enable pengaturan lagi"""
+        for qObject in self.allNeedToWatched:
+            qObject.setEnabled(True)
+
+    def compressStatusAnim(self):
+        """Untuk animasi titik titik loading dinamis saat kompresi berlangsung"""
+        self.currentPos += 1
+        if self.currentPos > 3:
+            self.currentPos = 0
+        self.compressStatus.setText("Memproses Kompresi" + "."*self.currentPos)
+    
+    def closeWindow(self):
+        """Fungsi resmi dari WM Instance untuk menutup jendela aplikasi"""
+        WM_.closeWindow(PCompressSampleTest)
 
     def closeEvent(self, event):
-        """Mencegah penutupan tidak disengaja melalui tombol silang jendela"""
-        self.closeWindow()
         event.ignore()
+        jawaban = bringQuestion(self, "Konfirmasi Keluar?", "Anda yakin ingin keluar dari jendela ini? Proses kompresi belum dimulai!", 'question', 'yes', 'no')
+        if jawaban == QMessageBox.Yes:
+            self.closeWindow()
+
+class CompressConfirmation(QMainWindow, compressConfirmation.Ui_MainWindow):
+    doneAction = Signal()
+    def __init__(self, upPassThrough:backend.UserPersonalization, dbPassThrough:backend.QNativeFileDatabase):
+        super().__init__()
+        self.setupUi(self)
+
+        ##### PASSTHROUGH CONST #####
+        self.userPersonalization = upPassThrough
+        self.sqlDb = dbPassThrough
+
+        ##### CONST FOR USER PERSONALIZATION #####
+        self.allSaveFormat = (
+            "JPEG", "JPG", "JPEG2000", "PNG",
+            "HEIF", "HEIC", "WEBP", "BMP",
+            "TIFF", "ICO", "AVIF"
+        )
+        self.defaultSavePath = os.path.join(os.environ["USERPROFILE"], "Downloads")
+
+        ##### CONST FOR FILE DETAIL #####
+        self.photoCategoryTableModel = QStandardItemModel(self)
+        self.photoCategoryHeaderLabel = ["Format", "Jumlah Foto"]
+        self.photoCategoryHeaderWidth = [80, 95]
+
+        ##### USER MUSN'T INTERACT WITH #####
+        self.allLineEdit = [self.readyCompress, self.cancelledPhoto, self.rejectedPhoto, self.megaPixel, self.photoQuality, self.saveLocation]
+        self.allComboBox = [self.deleteOriginalFile, self.saveFormat, self.resamplingAlgorithm]
+        
+        ##### Call Init First
+        self.initGUI()
+        self.initUserSettings()
+        self.initPhotoSummary()
+
+        ##### Signal & Slots #####
+        self.changeSettings.clicked.connect(self.openPersonalizationSettings)
+        self.continueCompression.clicked.connect(self.onFinishedReview)
+
+    ##### INIT CODE #####
+    def initGUI(self):
+        """Persiapkan beberapa pengaturan GUI untuk meningkatkan fungsionalitas dan UX"""
+        self.setWindowTitle("Konfirmasi Kompresi File")
+        self.setWindowIcon(QIcon(":/ai_appDefaultIcon"))
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        for qObject in self.allLineEdit:
+            qObject.setReadOnly(True)
+        for qObject in self.allComboBox:
+            qObject.setDisabled(True)
+
+        self.photoCategory.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.photoCategory.setModel(self.photoCategoryTableModel)
+        self.photoCategory.verticalHeader().setVisible(False)
+        self.photoCategoryTableModel.setHorizontalHeaderLabels(self.photoCategoryHeaderLabel)
+        for i, width in enumerate(self.photoCategoryHeaderWidth):
+            self.photoCategory.setColumnWidth(i, width)
+    
+    def initUserSettings(self):
+        """Persiapkan dan tampilkan pengaturan pengguna yang disettings"""
+        self.megaPixel.setValue(self.userPersonalization.getUserConfig('compressSettings',0))
+        self.photoQuality.setValue(self.userPersonalization.getUserConfig('compressSettings',1))
+        self.saveLocation.setText(self.userPersonalization.getUserConfig('compressSettings',2))
+        self.deleteOriginalFile.setChecked(bool(self.userPersonalization.getUserConfig('compressSettings',4)))
+        self.saveFormat.setCurrentIndex(self.allSaveFormat.index(self.userPersonalization.getUserConfig('compressSettings', 3)))
+        self.resamplingAlgorithm.setCurrentIndex(self.userPersonalization.getUserConfig('compressSettings', 5))
+
+        if self.saveLocation.text() == self.defaultSavePath:
+           self.saveLocation.setToolTip("Folder default di 'Downloads/[Compressed-Tanggal]' untuk menyimpan hasil kompresi.")
+
+    def initPhotoSummary(self):
+        """Persiapkan dan tampilkan ringkasan file foto yang ingin dikompresi"""
+        _readyToCompress = self.sqlDb.selectQuery(
+            querySQL="SELECT fileDir FROM verifyFileTable WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"
+        )
+        _rejected0 = self.sqlDb.selectQuery(
+            querySQL="SELECT COUNT(*) FROM photoRejectedTable"
+        )
+        _rejected1 = self.sqlDb.selectQuery(
+            querySQL="SELECT COUNT(*) FROM verifyFileTable WHERE isSupported != 1 OR isNotCorrupted != 1 OR isNotVirus != 1"
+        )
+        _cancelled = self.sqlDb.selectQuery(
+            querySQL="SELECT COUNT(*) FROM photoCancelledTable"
+        )
+        _fileFormat = self.sqlDb.selectQuery(
+            querySQL="SELECT fileFormat FROM verifyFileTable WHERE isSupported = 1 AND isNotCorrupted = 1 AND isNotVirus = 1"
+        )
+        allFileToCompress = [file[0] for file in _readyToCompress if os.path.isfile(file[0])]
+        _allFileFormat = dict(Counter([fExt[0] for fExt in _fileFormat]))
+        rejectedFile = _rejected0[0][0] + _rejected1[0][0]
+        cancelled = _cancelled[0][0]
+
+        self.readyCompress.setText(f"{len(allFileToCompress)} Foto")
+        self.rejectedPhoto.setText(f"{rejectedFile} Foto")
+        self.cancelledPhoto.setText(f"{cancelled} Foto")
+        for photoFormat, jumlah in _allFileFormat.items():
+            self.photoCategoryTableModel.appendRow(
+                [makeStandardItem(photoFormat),
+                 makeStandardItem(str(jumlah))]
+            )
+    
+    def openPersonalizationSettings(self):
+        """Buka pengaturan personalisasi pengguna"""
+        _w = WM_.openWindow(PengaturanKompresi, self.userPersonalization)
+        _w.show()
+        self.closeWindow()
+
+    def onFinishedReview(self):
+        """Saat pengguna sudah yakin ingin lanjut"""
+        jawaban = bringQuestion(self, "Konfirmasi Anda... Silahkan!", "Apakah Anda yakin ingin melajutkan menuju proses kompresi foto? Proses kompresi tidak akan dapat dihentikan setelah dimulai.", 'question', 'yes', 'no')
+        if jawaban == QMessageBox.Yes:
+            self.doneAction.emit()
+            self.closeWindow()
+
+    def closeWindow(self):
+        """Fungsi official Window Manager Instance untuk menutup jendela"""
+        WM_.closeWindow(CompressConfirmation)
+
+    def closeEvent(self, event):
+        self.closeWindow()
 
 ######### Window Class GUI #########
 class JendelaUtama(QMainWindow, MainWindow.Ui_MainWindow):
